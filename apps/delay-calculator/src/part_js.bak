@@ -1,0 +1,327 @@
+"use strict";
+/* ============ BAZA DANYCH (offline, wbudowana) ============
+   Źródła: karty katalogowe Seeburg (K Sub 1801, K Sub 1502, Galeo T Sub, PS Sub, X8, K20, C15/C30, PS1, PS1-EX)
+   oraz SEEBURG HDLM 8 + DSP2.6 Loudspeaker Library PEQ v6.3 (29.06.2026), rozdział 3.2 Time-Alignment-Delays.
+   L = czas przejścia w ms z tabeli Time-Alignment (wspólna płaszczyzna czoła). lpf = rzeczywisty LPF presetu suba.
+   dim = wysokość skrzyni w cm (do rysunku). Zdjęcia (IMGS) pochodzą z kart katalogowych. */
+const IMGS = /*IMGS*/{}/*END*/;
+const DB = {
+  subs: [
+    { id: "ksub1801", kind: "sub", name: "K Sub 1801", line: "18\" bas-reflex, 33–180 Hz", dim: 69.8,
+      spec: [["Głośnik","18\" (cewka 4\")"],["Pasmo −6 dB","33–180 Hz"],["Strojenie","38 Hz"],["SPL 1 W / peak","101 / 137 dB"],["Moc AES / peak","1500 / 4500 W"],["Impedancja","8 Ω"],["Wymiary W×S×G","69,8 × 51,2 × 56,0 cm"],["Waga","42,5 kg"]],
+      presets: [
+        { id:"100", label:"100 Hz", L:4.4, lpf:92,  info:"HPF BW12 38 Hz · LPF LR24 92 Hz · PEQ 38 Hz Q2 +4 dB" },
+        { id:"120", label:"120 Hz", L:5.2, lpf:110, info:"HPF BW12 38 Hz · LPF LR24 110 Hz · PEQ 38 Hz Q2 +4 dB, 85 Hz Q2 −1 dB" },
+        { id:"140", label:"140 Hz", L:5.8, lpf:130, info:"HPF BW12 38 Hz · LPF LR24 130 Hz · PEQ 38 Hz Q2 +4 dB, 85 Hz Q2 −1 dB" } ] },
+    { id: "ksub1502", kind: "sub", name: "K Sub 1502", line: "2×15\" bas-reflex, 37–220 Hz", dim: 51.2,
+      spec: [["Głośniki","2 × 15\" Nd (cewka 4\")"],["Pasmo −6 dB","37–220 Hz"],["Strojenie","45 Hz"],["SPL 1 W / peak","104 / 142 dB"],["Moc AES / peak","2000 / 6000 W"],["Impedancja","4 Ω"],["Wymiary W×S×G","51,2 × 94,2 × 56,0 cm"],["Waga","48,0 kg"]],
+      presets: [
+        { id:"100", label:"100 Hz", L:4.6, lpf:100, info:"HPF BW12 45 Hz · LPF LR24 100 Hz · PEQ 45 Hz +3, 80 Hz +1, 200 Hz Q0,7 −5,5, 270 Hz Q5 −3 dB" },
+        { id:"120", label:"120 Hz", L:5.2, lpf:120, info:"HPF BW12 45 Hz · LPF LR24 120 Hz · te same PEQ co w 100 Hz" },
+        { id:"140", label:"140 Hz", L:5.6, lpf:140, info:"HPF BW12 45 Hz · LPF LR24 140 Hz · te same PEQ co w 100 Hz" } ] },
+    { id: "galeotsub", kind: "sub", name: "Galeo T Sub", line: "21\" bas-reflex, 31–150 Hz", dim: 56,
+      spec: [["Głośnik","21\" Nd"],["Pasmo −6 dB","31–150 Hz"],["Strojenie","36 Hz"],["SPL 1 W / peak","103 / 139 dB"],["Moc AES / peak","1500 / 4500 W"],["Impedancja","8 Ω"],["Wymiary W×S×G","56,0 × 76,0 × 76,0 cm"],["Waga","62 kg"]],
+      presets: [
+        { id:"80",  label:"80 Hz",  L:3.4, lpf:80,  info:"HPF BW12 36 Hz · LPF LR24 80 Hz · PEQ 36 Hz +3, 60 Hz +1, 110 Hz −3, 200 Hz −2 dB" },
+        { id:"100", label:"100 Hz", L:4.2, lpf:100, info:"HPF BW12 36 Hz · LPF LR24 100 Hz · te same PEQ co w 80 Hz" },
+        { id:"120", label:"120 Hz", L:4.7, lpf:120, info:"HPF BW12 36 Hz · LPF LR24 120 Hz · te same PEQ co w 80 Hz" } ] },
+    { id: "pssub", kind: "sub", name: "PS Sub", line: "21\" ładowany tubą, 28–160 Hz", dim: 98,
+      spec: [["Głośnik","21\" (cewka 4,5\")"],["Pasmo −6 dB","28–160 Hz"],["Strojenie","33 Hz"],["SPL 1 W / peak","104 / 141 dB"],["Moc AES / peak","1500 / 4500 W"],["Impedancja","8 Ω"],["Charakterystyka","dookólna"],["Wymiary W×S×G","98,0 × 58,0 × 98,0 cm"],["Waga","74 kg"]],
+      presets: [
+        { id:"100", label:"100 Hz", L:1.9, lpf:100, info:"HPF BW12 33 Hz · LPF LR24 100 Hz · PEQ 33 Hz Q2,3 +5, 70 Hz −3, 90 Hz −1, 145 Hz −8 dB" } ] }
+  ],
+  tops: [
+    { id: "x8", kind: "top", name: "X8", line: "15\" koaksjal 80°×60°, 50 Hz–18 kHz", dim: 58,
+      spec: [["Głośniki","15\" Nd (cewka 3,5\") + 1,4\" Nd"],["Pasmo −6 dB","50 Hz–18 kHz"],["Strojenie","60 Hz"],["Podział akustyczny","1 kHz"],["SPL 1 W / peak","101 / 134 dB"],["Moc AES / peak","600 / 1800 W"],["Impedancja","8 Ω"],["Rozpraszanie","80° × 60° (obrotowe)"],["Wymiary W×S×G","58,0 × 45,0 × 38,0 cm"],["Waga","22,5 kg"]],
+      presets: [ { id:"hp", label:"HP 100 Hz", L:3.2, info:"Fullrange · HPF BW18 65 Hz · PEQ 75 Hz Q1 −3 dB, 12 kHz Q2 +3 dB" } ] },
+    { id: "k20", kind: "top", name: "K20", line: "2×10\" + 1,4\", 70 Hz–18 kHz", dim: 66,
+      spec: [["Głośniki","2 × 10\" Nd + 1,4\" Nd"],["Pasmo −6 dB","70 Hz–18 kHz"],["Strojenie","80 Hz"],["Podział akustyczny","900 Hz"],["SPL 1 W / peak","100 / 134 dB"],["Moc AES / peak","800 / 2400 W"],["Impedancja","4 Ω"],["Rozpraszanie","90°×60° albo 60°×50°"],["Wymiary W×S×G","66,0 × 30,0 × 36,0 cm"],["Waga","22,5 kg"]],
+      presets: [
+        { id:"flat", label:"Flat", L:3.4, info:"Fullrange · HPF BW18 80 Hz · PEQ 80 Hz Q3 +6 dB oraz korekta średnich i wysokich" },
+        { id:"hp", label:"HP 100 Hz", L:4.4, info:"Fullrange · HPF BW18 100 Hz · korekta średnich i wysokich" } ] },
+    { id: "c15", kind: "top", name: "C15 / C30", line: "2×10\" + 3×1\", 70 Hz–20 kHz", dim: 32,
+      spec: [["Głośniki","2 × 10\" Nd + 3 × 1\" Nd"],["Pasmo −6 dB","70 Hz–20 kHz"],["Strojenie","80 Hz"],["Podział akustyczny","800 Hz"],["SPL 1 W / peak","100 / 134 dB"],["Moc AES / peak","800 / 2400 W"],["Impedancja","8 Ω"],["Rozpraszanie","90° × 15° (C15), 90° × 30° (C30)"],["Wymiary W×S×G","32,0 × 70,0 × 38,0 cm"],["Waga","25 kg (C15), 23,5 kg (C30)"]],
+      presets: [ { id:"hp", label:"HP", L:3.9, info:"Fullrange · HPF BW18 70 Hz · PEQ 110 Hz Q1,7 −3 dB oraz korekta średnich i wysokich" } ] },
+    { id: "ps1", kind: "top", name: "PS1", line: "3-drożny punktowy, 75 Hz–20 kHz", dim: 92,
+      spec: [["Głośniki","2 × 12\" / 2 × 6,5\" / 1,4\""],["Pasmo −6 dB","75 Hz–20 kHz"],["Strojenie","80 Hz"],["Podział akustyczny","300 Hz / 1,3 kHz"],["SPL 1 W / peak LF","101 / 138 dB"],["SPL 1 W / peak MHF","108 / 138 dB"],["Moc AES / peak","LF 1500/4500 W, MHF 300/900 W"],["Impedancja","LF 4 Ω (8 Ω opcja), MHF 16 Ω"],["Rozpraszanie","80° × 40°"],["Wymiary W×S×G","92,0 × 58,0 × 58,0 cm"],["Waga","54 kg"]],
+      presets: [ { id:"hp", label:"HP 100 Hz", L:4.3, info:"Dwa kanały (high, mid) · mid HPF BW18 110 Hz, delay mid 0,15 ms w presecie" } ] },
+    { id: "galeottop", kind: "top", name: "Galeo T Top", line: "tylko biblioteka procesora", dim: 40,
+      spec: [["Źródło danych","biblioteka HDLM 8, bez karty katalogowej"],["Preset","Flat (high+mid, low)"],["Delay w presecie","1,2 ms (high+mid)"]],
+      presets: [ { id:"flat", label:"Flat", L:2.0, info:"Dwa kanały: high+mid i low · HPF BW24 260 Hz (high+mid)" } ] }
+  ],
+  other: { id: "other", kind: "other", name: "Inny głośnik", line: "bez danych z biblioteki", custom: true, dim: 60,
+    presets: [ { id:"x", label:"bez presetu", L:0, info:"" } ] },
+  infoOnly: [
+    { name: "PS1-EX", line: "moduł niskośrednicowy do PS1, 75–500 Hz",
+      spec: [["Głośniki","2 × 12\""],["Pasmo −6 dB","75–500 Hz"],["Strojenie","80 Hz"],["Podział akustyczny","300 Hz"],["SPL 1 W / peak","101 / 138 dB"],["Moc AES / peak","1500 / 4500 W"],["Impedancja","4 Ω (8 Ω opcja)"],["Wymiary W×S×G","36,8 × 58,0 × 58,0 cm"],["Waga","25 kg"],["Opóźnienie w bibliotece","brak wpisu w tabeli Time-Alignment"]] }
+  ]
+};
+DB.all = DB.subs.concat(DB.tops, [DB.other]);
+const modelOf = id => DB.all.find(m => m.id === id) || DB.all[0];
+
+/* ============ OBLICZENIA ============ */
+const speedOfSound = T => 331.3 * Math.sqrt(1 + T / 273.15);          // m/s, powietrze suche
+const horiz = (d, h) => Math.sqrt(Math.max(d * d - h * h, 0));
+function compute(s) {
+  const mA = modelOf(s.A), mB = modelOf(s.B);
+  const pA = mA.presets.find(p => p.id === s.pA) || mA.presets[0];
+  const pB = mB.presets.find(p => p.id === s.pB) || mB.presets[0];
+  const c = speedOfSound(s.T);
+  const geo = (s.dA - s.dB) / c * 1000;                           // ms; <0: A bliżej, opóźnij A
+  const custom = !!(mA.custom || mB.custom);
+  const lib = custom ? 0 : pA.L - pB.L;                           // ms; >0: A później, opóźnij B
+  const X = geo + lib;                                            // >0: opóźnij B, <0: opóźnij A
+  return { mA, mB, pA, pB, c, geo, lib, custom, X, delayA: X < 0 ? -X : 0, delayB: X > 0 ? X : 0 };
+}
+
+/* ============ STAN ============ */
+const KEY = "seeburg-delay-v2";
+/* Przykład: wieża przy DJ-u. Ucho DJ-a = punkt odniesienia. Sub (środek ok. 0,9 m niżej), top (ok. 0,1 m wyżej), oba 1,3 m poziomo. */
+const defaults = { A:"ksub1801", pA:"100", B:"x8", pB:"hp", dA:1.58, dB:1.30, hA:-0.90, hB:0.10, T:20, ref:"dj", mode:"direct" };
+let S = Object.assign({}, defaults);
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 2) => n.toFixed(d).replace(".", ",").replace(/^-0([,.]0+)?$/, "0$1");
+const sgn = (n, d = 2) => (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n), d);
+const REF = { dj: ["Miejsce DJ-a", "miejsca DJ-a"], foh: ["FOH", "FOH"], other: ["Inny punkt", "punktu odniesienia"] };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ============ WIDOK: kontrolki ============ */
+function fillSelect(el, val) {
+  const opt = m => `<option value="${m.id}">${esc(m.name)}</option>`;
+  el.innerHTML = `<optgroup label="Suby">${DB.subs.map(opt).join("")}</optgroup>` +
+                 `<optgroup label="Topy i koaksjale">${DB.tops.map(opt).join("")}</optgroup>` +
+                 `<optgroup label="Inne">${opt(DB.other)}</optgroup>`;
+  el.value = val;
+}
+function fillSeg(el, name, presets, val, onPick) {
+  el.innerHTML = presets.map(p => `<label><input type="radio" name="${name}" value="${p.id}"${p.id === val ? " checked" : ""}><span>${esc(p.label)}</span></label>`).join("");
+  el.querySelectorAll("input").forEach(i => i.addEventListener("change", () => onPick(i.value)));
+}
+function syncModels() {
+  const mA = modelOf(S.A), mB = modelOf(S.B);
+  if (!mA.presets.some(p => p.id === S.pA)) S.pA = mA.presets[0].id;
+  if (!mB.presets.some(p => p.id === S.pB)) S.pB = mB.presets[0].id;
+  fillSeg($("segA"), "sa", mA.presets, S.pA, v => { S.pA = v; update(); });
+  fillSeg($("segB"), "sb", mB.presets, S.pB, v => { S.pB = v; update(); });
+  $("presetRowA").hidden = mA.presets.length < 2;
+  $("presetRowB").hidden = mB.presets.length < 2;
+}
+
+/* Pola liczbowe: konfiguracja (odczyt, zapis, krok, zakres, miejsca po przecinku) */
+const plane = () => S.mode === "plane";
+const F = {
+  fA:   { get: () => plane() ? horiz(S.dA, S.hA) : S.dA, set: v => { S.dA = plane() ? Math.hypot(v, S.hA) : Math.max(v, Math.abs(S.hA)); }, step: .05, lo: .05, hi: 200, d: 2 },
+  fB:   { get: () => plane() ? horiz(S.dB, S.hB) : S.dB, set: v => { S.dB = plane() ? Math.hypot(v, S.hB) : Math.max(v, Math.abs(S.hB)); }, step: .05, lo: .05, hi: 200, d: 2 },
+  hA:   { get: () => S.hA, set: v => { if (plane()) { const x = horiz(S.dA, S.hA); S.dA = Math.hypot(x, v); } S.hA = v; }, step: .1, lo: -50, hi: 50, d: 2 },
+  hB:   { get: () => S.hB, set: v => { if (plane()) { const x = horiz(S.dB, S.hB); S.dB = Math.hypot(x, v); } S.hB = v; }, step: .1, lo: -50, hi: 50, d: 2 },
+  temp: { get: () => S.T, set: v => { S.T = v; }, step: 1, lo: -30, hi: 60, d: 1 }
+};
+const parse = v => parseFloat(String(v).replace(",", ".").replace(/[^0-9.\-]/g, ""));
+function syncInputs() {
+  Object.keys(F).forEach(id => { const el = $(id); if (document.activeElement !== el) el.value = Number.isFinite(F[id].get()) ? fmt(F[id].get(), F[id].d) : ""; });
+}
+Object.keys(F).forEach(id => {
+  const inp = $(id), f = F[id];
+  inp.addEventListener("input", () => { const v = parse(inp.value); if (Number.isFinite(v)) { f.set(v); update(false); } });
+  inp.addEventListener("blur", () => { const v = parse(inp.value); if (Number.isFinite(v)) f.set(Math.min(f.hi, Math.max(f.lo, v))); update(); });
+  inp.addEventListener("focus", () => inp.select());
+});
+document.querySelectorAll(".stepper button").forEach(b => b.addEventListener("click", () => {
+  const f = F[b.dataset.step];
+  let v = Number.isFinite(f.get()) ? f.get() : 0;
+  v = Math.round((v + f.step * Number(b.dataset.dir)) * 1000) / 1000;
+  f.set(Math.min(f.hi, Math.max(f.lo, v))); update();
+}));
+$("selA").addEventListener("change", e => { S.A = e.target.value; syncModels(); update(); });
+$("selB").addEventListener("change", e => { S.B = e.target.value; syncModels(); update(); });
+$("ref").addEventListener("change", e => { S.ref = e.target.value; update(); });
+document.querySelectorAll('#segMode input').forEach(i => i.addEventListener("change", () => { S.mode = i.value; update(); }));
+
+/* ============ WIDOK: wynik ============ */
+function whyRow(title, right, rcls, text, extra = "") {
+  return `<div class="why ${extra}"><div class="top"><span class="t">${title}</span><span class="r ${rcls}">${right}</span></div><p class="d">${text}</p></div>`;
+}
+const who = (k, name) => `<span class="badge ${k.toLowerCase()}">${k}</span>${esc(name)}`;
+function render(r) {
+  const ref = REF[S.ref];
+  const nm = { A: r.mA.name, B: r.mB.name };
+  $("whoA").textContent = "A · " + nm.A;
+  $("whoB").textContent = "B · " + nm.B;
+  $("distTitle").textContent = "Odległość do " + ref[1];
+  $("kA").textContent = (plane() ? "Poziomo do A" : "Do A");
+  $("kB").textContent = (plane() ? "Poziomo do B" : "Do B");
+  $("khA").textContent = "Wysokość A";
+  $("khB").textContent = "Wysokość B";
+  $("modeNote").textContent = plane()
+    ? "Odległość w poziomie, bez wysokości. Aplikacja doliczy wysokość i obliczy drogę po skosie."
+    : "Odległość po skosie, np. z dalmierza laserowego, od punktu odniesienia do środka skrzyni.";
+  document.querySelectorAll('#segMode input').forEach(i => { i.checked = i.value === S.mode; });
+  $("ref").value = S.ref;
+
+  const ok = [S.dA, S.dB, S.T].every(Number.isFinite) && S.dA > 0 && S.dB > 0;
+  $("cval").textContent = fmt(r.c, 1) + " m/s";
+  if (!ok) {
+    ["valA", "valB"].forEach(i => $(i).textContent = "—");
+    $("dsp").textContent = "Wpisz odległości i temperaturę."; $("warn").hidden = true; $("why").innerHTML = ""; return;
+  }
+  const show = (k, ms) => {
+    const on = ms > 0;
+    $("val" + k).innerHTML = fmt(ms) + "<small>ms</small>";
+    $("tile" + k).classList.toggle("on", on);
+    $("hint" + k).textContent = on ? "ustaw to opóźnienie" : "bez opóźnienia";
+  };
+  show("A", r.delayA); show("B", r.delayB);
+  const ms = Math.max(r.delayA, r.delayB);
+  const smp = fs => { const n = Math.round(ms / 1000 * fs); return `<b>${n}</b> próbek (${fmt(n / fs * 1000, 3)} ms)`; };
+  $("dsp").innerHTML = `48 kHz: ${smp(48000)}<br>96 kHz: ${smp(96000)}`;
+
+  /* wyjaśnienie wyniku */
+  const nearer = r.geo < 0 ? "A" : "B", dist = Math.abs(S.dA - S.dB);
+  let geoRow, libRow;
+  if (Math.abs(r.geo) < 0.005) geoRow = whyRow("1. Odległość", "0,00 ms", "n", `Oba głośniki są tak samo daleko od ${ref[1]} (po ${fmt(S.dA)} m i ${fmt(S.dB)} m). Ta różnica nic nie zmienia.`);
+  else geoRow = whyRow("1. Odległość", `${nearer} +${fmt(Math.abs(r.geo))} ms`, nearer.toLowerCase(),
+    `Głośnik ${nearer} jest bliżej ${ref[1]} o ${fmt(dist)} m (${fmt(S.dA)} m i ${fmt(S.dB)} m). Jego dźwięk dociera o ${fmt(Math.abs(r.geo))} ms wcześniej, więc ${nearer} trzeba opóźnić.`);
+  if (r.custom) libRow = whyRow("2. Czas przejścia", "pominięto", "n", "Dla głośnika spoza bazy nie ma czasu przejścia w bibliotece Seeburga, więc ten krok pominięto.");
+  else if (Math.abs(r.lib) < 0.005) libRow = whyRow("2. Czas przejścia", "0,00 ms", "n", `Oba presety mają ten sam czas przejścia (${fmt(r.pA.L, 1)} ms).`);
+  else {
+    const late = r.lib > 0 ? "A" : "B", early = late === "A" ? "B" : "A";
+    const Ll = late === "A" ? r.pA.L : r.pB.L, Le = late === "A" ? r.pB.L : r.pA.L;
+    libRow = whyRow("2. Czas przejścia", `${early} +${fmt(Math.abs(r.lib))} ms`, early.toLowerCase(),
+      `Wewnątrz skrzyń dźwięk idzie różnie długo. W tabeli Seeburga ${late} ma ${fmt(Ll, 1)} ms, a ${early} ${fmt(Le, 1)} ms. Różnicę ${fmt(Math.abs(r.lib))} ms wyrównuje opóźnienie ${early}.`);
+  }
+  let how;
+  const gDir = Math.abs(r.geo) < 0.005 ? 0 : (r.geo < 0 ? -1 : 1), lDir = Math.abs(r.lib) < 0.005 ? 0 : (r.lib > 0 ? 1 : -1);
+  if (Math.abs(r.X) < 0.005) how = "Efekty się znoszą, opóźnienie nie jest potrzebne.";
+  else if (gDir === 0 || lDir === 0 || gDir === lDir) how = `Dodajemy: ${fmt(Math.abs(r.geo))} + ${fmt(Math.abs(r.lib))} = ${fmt(Math.abs(r.X))} ms.`;
+  else how = `Oba efekty działają w przeciwne strony, więc je odejmujemy: ${fmt(Math.max(Math.abs(r.geo), Math.abs(r.lib)))} − ${fmt(Math.min(Math.abs(r.geo), Math.abs(r.lib)))} = ${fmt(Math.abs(r.X))} ms.`;
+  const target = r.X > 0 ? "B" : r.X < 0 ? "A" : null;
+  const finalRow = Math.abs(r.X) < 0.005
+    ? whyRow("Wynik końcowy", "0,00 ms", "n", how, "final")
+    : whyRow("Wynik końcowy", `${target} +${fmt(Math.abs(r.X))} ms`, target.toLowerCase(), `<b>Razem</b> to suma obu efektów. ${how} Opóźnij głośnik <b>${target}</b> (${esc(target === "A" ? nm.A : nm.B)}) o ${fmt(Math.abs(r.X))} ms.`, "final");
+  $("why").innerHTML = geoRow + libRow + finalRow;
+
+  const fc = r.pA.lpf || r.pB.lpf || 100, loss = 20 * Math.log10(Math.abs(Math.cos(Math.PI * fc * Math.abs(r.X) / 1000)));
+  const w = $("warn");
+  const bad = (S.dA < Math.abs(S.hA) - 1e-6) || (S.dB < Math.abs(S.hB) - 1e-6);
+  if (bad) { w.hidden = false; w.textContent = "Odległość po skosie nie może być mniejsza niż wysokość. Sprawdź wpisane wartości."; }
+  else if (Math.abs(r.X) >= 8) { w.hidden = false; w.textContent = "Duża różnica. Sprawdź, czy odległości są wpisane poprawnie."; }
+  else w.hidden = true;
+  const lpfKnown = r.pA.lpf || r.pB.lpf;
+  $("phaseNote").textContent = Math.abs(r.X) < 0.05
+    ? "Źródła są już wyrównane."
+    : (lpfKnown ? `Bez korekty suma obu głośników traci około ${fmt(Math.abs(loss), 1)} dB przy ${fc} Hz (podział LR4). Różnice poniżej 1 ms mają według Seeburga niewielki wpływ.`
+                : "Różnice poniżej 1 ms mają według Seeburga niewielki wpływ.");
+}
+
+/* ============ WIDOK: rysunek układu ============ */
+function drawPlan(r) {
+  const W = 360, pad = 16, refW = 40, rightRes = 128;
+  const ok = [S.dA, S.dB].every(v => Number.isFinite(v) && v > 0);
+  if (!ok) { $("stage").innerHTML = ""; return; }
+  const pts = [
+    { k: "A", m: r.mA, d: S.dA, h: S.hA, delay: r.delayA, col: "#0088FF" },
+    { k: "B", m: r.mB, d: S.dB, h: S.hB, delay: r.delayB, col: "#E07600" }
+  ];
+  pts.forEach(p => { p.x = horiz(p.d, p.h); p.real = p.m.dim / 100; });
+  const maxX = Math.max(.5, ...pts.map(p => p.x));
+  const topM = Math.max(0, ...pts.map(p => p.h)), botM = Math.min(0, ...pts.map(p => p.h));
+  const hRange = topM - botM;
+  let ppm = (W - 2 * pad - refW - rightRes) / maxX;
+  ppm = Math.min(ppm, 250 / (hRange + 1.2));
+  let scaled = false;
+  pts.forEach(p => {
+    const img = IMGS[p.m.id], asp = img ? img.w / img.h : 1.15;
+    let ph = p.real * ppm;
+    if (ph < 46) { ph = 46; scaled = true; }
+    let pw = ph * asp;
+    if (pw > 110) { pw = 110; ph = pw / asp; }
+    p.ph = ph; p.pw = pw; p.img = img;
+  });
+  const ext = Math.max(...pts.map(p => p.ph)) / 2;
+  const x0 = pad + refW, padT = 14;
+  const yOf = h => padT + ext + (topM - h) * ppm;
+  const yRef = yOf(0);
+  const Hh = padT + ext + (topM - botM) * ppm + ext + 44;
+  const f2 = n => n.toFixed(1);
+  let s = `<svg viewBox="0 0 ${W} ${f2(Hh)}" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, system-ui, sans-serif">`;
+  s += `<line x1="${pad}" y1="${f2(yRef)}" x2="${W - pad}" y2="${f2(yRef)}" stroke="#C7C7CC" stroke-width="1" stroke-dasharray="3 4"/>`;
+  /* punkt odniesienia */
+  const rx = x0 - 20;
+  if (S.ref === "foh") s += `<g class="ink"><rect x="${rx - 14}" y="${f2(yRef - 16)}" width="26" height="22" rx="2" fill="none" stroke="#1C1C1E" stroke-width="2"/><path d="M${rx - 14} ${f2(yRef - 16)} L${rx + 12} ${f2(yRef - 26)} V${f2(yRef - 16)}" fill="none" stroke="#1C1C1E" stroke-width="2"/></g>`;
+  else if (S.ref === "dj") s += `<g><circle cx="${rx}" cy="${f2(yRef - 8)}" r="7" fill="#1C1C1E"/><path d="M${rx - 13} ${f2(yRef + 22)} q13 -22 26 0z" fill="#1C1C1E"/></g>`;
+  else s += `<g><circle cx="${rx}" cy="${f2(yRef)}" r="8" fill="none" stroke="#1C1C1E" stroke-width="2"/><circle cx="${rx}" cy="${f2(yRef)}" r="2.5" fill="#1C1C1E"/></g>`;
+  s += `<text class="ink" x="${rx}" y="${f2(yRef + 36)}" text-anchor="middle" font-size="10" font-weight="600">${esc(REF[S.ref][0])}</text>`;
+  /* linie, głośniki, opisy */
+  const upper = yOf(pts[0].h) <= yOf(pts[1].h) ? pts[0].k : pts[1].k;   // wyższa linia: podpis nad nią, niższa: pod nią
+  pts.forEach(p => {
+    const X = x0 + p.x * ppm, Y = yOf(p.h);
+    s += `<line x1="${x0}" y1="${f2(yRef)}" x2="${f2(X)}" y2="${f2(Y)}" stroke="${p.col}" stroke-width="2" stroke-dasharray="6 4"/>`;
+    const mx = x0 + (X - x0) * .36, my = yRef + (Y - yRef) * .36;
+    const dy = p.k === upper ? -6 : 16;
+    s += `<text class="ink halo" x="${f2(mx)}" y="${f2(my + dy)}" text-anchor="middle" font-size="11" font-weight="700">${fmt(p.d)} m</text>`;
+  });
+  pts.forEach(p => {
+    const X = x0 + p.x * ppm, Y = yOf(p.h);
+    if (p.img) s += `<image href="${p.img.src}" x="${f2(X - p.pw / 2)}" y="${f2(Y - p.ph / 2)}" width="${f2(p.pw)}" height="${f2(p.ph)}" preserveAspectRatio="xMidYMid meet"/>`;
+    else s += `<rect x="${f2(X - p.pw / 2)}" y="${f2(Y - p.ph / 2)}" width="${f2(p.pw)}" height="${f2(p.ph)}" rx="4" fill="#2C2C2E"/><text x="${f2(X)}" y="${f2(Y + 4)}" text-anchor="middle" font-size="10" fill="#fff">${esc(p.m.name)}</text>`;
+    s += `<circle cx="${f2(X - p.pw / 2 + 2)}" cy="${f2(Y - p.ph / 2 + 2)}" r="10" fill="${p.col}" stroke="#fff" stroke-width="2"/><text x="${f2(X - p.pw / 2 + 2)}" y="${f2(Y - p.ph / 2 + 6)}" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">${p.k}</text>`;
+    const label = p.delay > 0 ? `+${fmt(p.delay)} ms` : "0 ms";
+    const cw = 64, cx = X + p.pw / 2 + 6, cy = Y - 9.5;
+    s += `<rect x="${f2(cx)}" y="${f2(cy)}" width="${cw}" height="19" rx="9.5" fill="${p.delay > 0 ? p.col : "#E5E5EA"}"/><text x="${f2(cx + cw / 2)}" y="${f2(cy + 13.5)}" text-anchor="middle" font-size="11" font-weight="700" fill="${p.delay > 0 ? "#fff" : "#48484A"}">${label}</text>`;
+    s += `<circle cx="${f2(X)}" cy="${f2(Y)}" r="2.5" fill="${p.col}" stroke="#fff" stroke-width="1"/>`;
+  });
+  s += `</svg>`;
+  $("stage").innerHTML = s;
+  $("stageNote").textContent = "Widok z boku, rysunek poglądowy. Odległości od punktu odniesienia są w skali, szara przerywana linia to wysokość punktu odniesienia." + (scaled ? " Małe skrzynie powiększono, żeby były widoczne." : "");
+  const row = p => whyRow(who(p.k, p.m.name), p.delay > 0 ? `+${fmt(p.delay)} ms` : "0 ms", p.delay > 0 ? p.k.toLowerCase() : "n",
+    `Po skosie ${fmt(p.d)} m · poziomo ${fmt(p.x)} m · wysokość ${sgn(p.h)} m`);
+  $("legend").innerHTML = pts.map(row).join("");
+}
+
+function update(syncIn = true) {
+  save();
+  const r = compute(S);
+  render(r);
+  drawPlan(r);
+  if (syncIn) syncInputs();
+}
+
+$("copy").addEventListener("click", async () => {
+  const r = compute(S), ms = Math.max(r.delayA, r.delayB);
+  const m = r.delayB > 0 ? r.mB : r.mA;
+  const text = `${m.name}: ${fmt(ms)} ms`;
+  const b = $("copy");
+  try { await navigator.clipboard.writeText(text); b.textContent = "Skopiowano"; }
+  catch (e) { b.textContent = text; }
+  setTimeout(() => { b.textContent = "Kopiuj wartość"; }, 1600);
+});
+
+/* Karty */
+function showTab(name) {
+  ["calc", "plan", "db", "info"].forEach(t => {
+    $("tab-" + t).hidden = t !== name;
+    $("t-" + t).setAttribute("aria-selected", String(t === name));
+  });
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => showTab(t.dataset.tab)));
+
+/* Baza: lista modeli ze zdjęciami */
+const chev = '<svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function modelHTML(m) {
+  const specs = m.spec.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+  const pre = (m.presets || []).map(p => `<p><b>${p.label}</b> · czas przejścia ${fmt(p.L, 1)} ms<br>${p.info}</p>`).join("");
+  const img = m.id && IMGS[m.id] ? `<div class="photo"><img alt="${esc(m.name)}" src="${IMGS[m.id].src}"></div>` : "";
+  return `<details class="model"><summary><span><span class="n">${m.name}</span><br><span class="s">${m.line}</span></span>${chev}</summary>
+    <div class="body">${img}<dl class="spec">${specs}</dl>${pre ? `<div class="presets"><h3>Presety procesora</h3>${pre}</div>` : ""}</div></details>`;
+}
+$("dbSubs").innerHTML = DB.subs.map(modelHTML).join("");
+$("dbTops").innerHTML = DB.tops.concat(DB.infoOnly).map(modelHTML).join("");
+
+/* Start */
+fillSelect($("selA"), S.A);
+fillSelect($("selB"), S.B);
+syncModels();
+update();

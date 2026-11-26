@@ -1,0 +1,228 @@
+
+<div class="wrap">
+
+<main id="tab-calc" role="tabpanel" aria-labelledby="t-calc">
+  <h1>Delay</h1>
+  <div class="group"><div class="row block"><div class="seg" id="segMode" role="radiogroup" aria-label="Tryb">
+    <label><input type="radio" name="mode" value="fs"><span>Front System</span></label>
+    <label><input type="radio" name="mode" value="dj"><span>DJ Monitor</span></label></div></div></div>
+  <div id="dj">
+
+  <section class="result" aria-live="polite" aria-label="Wynik">
+    <div class="cap">Ustaw w procesorze</div>
+    <div class="tiles">
+      <div class="tile" id="tileA"><div class="who" id="whoA">A</div><div class="val" id="valA">—</div><div class="hint" id="hintA"></div></div>
+      <div class="tile" id="tileB"><div class="who" id="whoB">B</div><div class="val" id="valB">—</div><div class="hint" id="hintB"></div></div>
+    </div>
+    <p class="dsp" id="dsp"></p>
+    <p class="warn" id="warn" hidden></p>
+  </section>
+
+  <h2 class="group-title">Głośniki</h2>
+  <div class="group" id="djSpk"></div>
+  <p class="group-foot">Dowolne dwa głośniki: sub i top, dwa suby, głośnik główny i opóźniający. Głośnik spoza bazy wybierz jako „Inny głośnik”.</p>
+
+  <h2 class="group-title">Ustawienie skrzyń</h2>
+  <div class="group">
+    <div class="row block"><div class="seg" id="segPlace" role="radiogroup" aria-label="Układ głośników A i B">
+      <label><input type="radio" name="place" value="tower"><span>B na A (wieża)</span></label>
+      <label><input type="radio" name="place" value="apart"><span>Osobno</span></label></div></div>
+    <div class="row"><label class="k" for="nA" id="knA">Liczba skrzyń A</label>
+      <div class="num"><input id="nA" inputmode="decimal" autocomplete="off"><span class="u">szt.</span>
+        <div class="stepper"><button type="button" data-step="nA" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="nA" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    <div class="row block" id="arrRow"><span class="k" style="margin-bottom:8px">Skrzynie A stoją</span><div class="seg" id="segArr" role="radiogroup" aria-label="Skrzynie A w stosie lub obok siebie">
+      <label><input type="radio" name="arr" value="stack"><span>Jedna na drugiej</span></label>
+      <label><input type="radio" name="arr" value="side"><span>Obok siebie</span></label></div></div>
+  </div>
+  <p class="group-foot" id="placeNote"></p>
+
+  <h2 class="group-title">Punkt odniesienia</h2>
+  <div class="group">
+    <div class="row"><span class="k">Gdzie liczysz</span>
+      <label class="pick"><select id="ref" aria-label="Punkt odniesienia">
+        <option value="dj">Miejsce DJ-a</option><option value="foh">FOH</option><option value="other">Inny punkt</option></select>
+        <svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></label></div>
+  </div>
+
+  <h2 class="group-title">Odległość i wysokość</h2>
+  <div class="group">
+    <div class="row"><label class="k" for="fX" id="kX">Do frontu skrzyń</label>
+      <div class="num"><input id="fX" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+        <div class="stepper"><button type="button" data-step="fX" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fX" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    <div class="row" id="rowXB"><label class="k" for="fXB" id="kXB">Do frontu B</label>
+      <div class="num"><input id="fXB" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+        <div class="stepper"><button type="button" data-step="fXB" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fXB" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    <div class="row"><label class="k" for="fR" id="kR">Wysokość ucha</label>
+      <div class="num"><input id="fR" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+        <div class="stepper"><button type="button" data-step="fR" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fR" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    <div class="row" id="rowBA"><label class="k" for="bA" id="kbA">Wysokość spodu A</label>
+      <div class="num"><input id="bA" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+        <div class="stepper"><button type="button" data-step="bA" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="bA" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    <div class="row" id="rowBB"><label class="k" for="bB" id="kbB">Wysokość spodu B</label>
+      <div class="num"><input id="bB" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+        <div class="stepper"><button type="button" data-step="bB" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="bB" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+  </div>
+  <p class="group-foot">Wpisujesz tylko odległość w poziomie od ucha (lub FOH) do przedniej ścianki skrzyń i wysokość ucha nad podłogą (stojący DJ ok. 1,6 m, FOH ok. 1,2 m). Drogę po skosie i wysokości środków skrzyń aplikacja liczy sama z wymiarów modeli. Wartości z dalmierza możesz wpisać, wkleić (np. „3,215 m”) albo przeciągnąć skrzynię w zakładce Układ. Klawisz Enter przechodzi do następnego pola.</p>
+
+  <h2 class="group-title">Warunki</h2>
+  <div class="group">
+    <div class="row"><label class="k" for="temp">Temperatura</label>
+      <div class="num"><input id="temp" inputmode="decimal" autocomplete="off" aria-label="Temperatura powietrza w stopniach Celsjusza"><span class="u">°C</span>
+        <div class="stepper"><button type="button" data-step="temp" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="temp" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    <div class="row"><span class="k">Prędkość dźwięku</span><span class="v mono" id="cval">—</span></div>
+  </div>
+
+  <h2 class="group-title">Jak powstał wynik</h2>
+  <div class="group" id="why"></div>
+  <p class="group-foot" id="phaseNote"></p>
+</div>
+
+  <div id="fs" hidden>
+    <section class="result" aria-live="polite" aria-label="Wynik Front System">
+      <div class="cap">Ustaw w procesorze</div>
+      <div class="tiles three" id="ftiles"><div class="tile" id="ftileA"><div class="who" id="fwhoA">A</div><div class="val" id="fvalA">—</div><div class="hint" id="fhintA"></div></div><div class="tile" id="ftileB"><div class="who" id="fwhoB">B</div><div class="val" id="fvalB">—</div><div class="hint" id="fhintB"></div></div><div class="tile" id="ftileC" hidden><div class="who" id="fwhoC">C</div><div class="val" id="fvalC">—</div><div class="hint" id="fhintC"></div></div></div>
+      <p class="dsp" id="fdsp"></p>
+      <p class="warn" id="fwarn" hidden></p>
+    </section>
+
+    <h2 class="group-title">Głośniki</h2>
+    <div class="group" id="fsSpk"></div>
+
+    <h2 class="group-title">Układ subwooferów (A)</h2>
+    <div class="group">
+      <div class="row block"><span class="k" style="margin-bottom:8px">Typ układu</span><div class="seg" id="segFSType" role="radiogroup" aria-label="Typ układu subwooferów">
+        <label><input type="radio" name="fstype" value="line"><span>Linia</span></label>
+        <label><input type="radio" name="fstype" value="arc"><span>Łuk</span></label>
+        <label><input type="radio" name="fstype" value="end"><span>End-fire</span></label>
+        <label><input type="radio" name="fstype" value="grad"><span>Gradient</span></label></div></div>
+      <div class="row" id="rowFSN"><label class="k" for="fsN">Liczba subów</label>
+        <div class="num"><input id="fsN" inputmode="decimal" autocomplete="off"><span class="u">szt.</span>
+          <div class="stepper"><button type="button" data-step="fsN" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsN" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+      <div class="row" id="rowFSD"><label class="k" for="fsD">Odstęp subów</label>
+        <div class="num"><input id="fsD" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+          <div class="stepper"><button type="button" data-step="fsD" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsD" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+      <div class="row" id="rowFSA" hidden><label class="k" for="fsA">Kąt łuku</label>
+        <div class="num"><input id="fsA" inputmode="decimal" autocomplete="off"><span class="u">°</span>
+          <div class="stepper"><button type="button" data-step="fsA" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsA" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+      <div class="row block"><button class="btn" id="fsAuto" type="button" style="margin-top:0">Odstęp wg częstotliwości</button></div>
+    </div>
+    <p class="group-foot" id="fsNote"></p>
+
+    <h2 class="group-title">Odległość od punktu odniesienia</h2>
+    <div class="group">
+      <div class="row"><span class="k">Gdzie liczysz</span>
+        <label class="pick"><select id="fref" aria-label="Punkt odniesienia">
+          <option value="dj">Miejsce DJ-a</option><option value="foh">FOH</option><option value="other">Inny punkt</option></select><svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></label></div>
+      <div class="row" id=""><label class="k" for="fsDA">Do suba A (środka)</label>
+        <div class="num"><input id="fsDA" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+          <div class="stepper"><button type="button" data-step="fsDA" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsDA" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+      <div class="row" id=""><label class="k" for="fsDB">Do głośnika B</label>
+        <div class="num"><input id="fsDB" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+          <div class="stepper"><button type="button" data-step="fsDB" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsDB" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+      <div class="row" id="rowFSDC" hidden><label class="k" for="fsDC">Do głośnika C</label>
+        <div class="num"><input id="fsDC" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+          <div class="stepper"><button type="button" data-step="fsDC" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsDC" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    </div>
+    <p class="group-foot">Wpisz odległości zmierzone dalmierzem do środka układu subów i do każdego głośnika (po skosie, bez przeliczania).</p>
+
+    <h2 class="group-title">Częstotliwość</h2>
+    <div class="group">
+      <div class="row"><span class="k">Mapa dla</span><span class="v mono" id="fsFval">80 Hz</span></div>
+      <div class="row block"><input type="range" id="fsF" min="0" max="5" step="1" aria-label="Częstotliwość mapy" style="width:100%">
+        <div class="fsticks"><span>30</span><span>40</span><span>50</span><span>60</span><span>80</span><span>100</span></div></div>
+    </div>
+
+    <h2 class="group-title">Pole dźwięku (widok z góry)</h2>
+    <div class="stage"><canvas id="fsCv" width="640" height="640" role="img" aria-label="Mapa pola dźwięku subwooferów widziana z góry"></canvas></div>
+    <div class="group" style="margin-top:12px"><div class="row block"><div class="seg" id="segFSView" role="radiogroup" aria-label="Widok mapy">
+      <label><input type="radio" name="fsview" value="spl"><span>Poziom (dB)</span></label>
+      <label><input type="radio" name="fsview" value="wave"><span>Fala (animacja)</span></label></div></div></div>
+    <p class="group-foot" id="fsMapNote"></p>
+
+    <h2 class="group-title">Ustawienia procesora</h2>
+    <div class="group" id="fsOut"></div>
+    <p class="group-foot">Mapa: źródła punktowe, bez ścian i podłogi, suby jako dookólne (jak w arkuszu S.A.D. Merlijna van Veena). To punkt startowy, zawsze zmierz i sprawdź.</p>
+  </div>
+</main>
+
+<main id="tab-plan" role="tabpanel" aria-labelledby="t-plan" hidden>
+  <h1>Układ</h1>
+  <div class="stage" id="stage" role="img" aria-label="Rysunek ustawienia głośników względem punktu odniesienia"></div>
+  <p class="group-foot" id="stageNote"></p>
+  <h2 class="group-title">Wartości do rysunku</h2>
+  <div class="group legend" id="legend"></div>
+</main>
+
+<main id="tab-sm" role="tabpanel" aria-labelledby="t-sm" hidden>
+  <h1>Smaart</h1>
+  <p class="group-foot" style="margin-top:0">Zmierz w Smaarcie każdy głośnik (A, B, C) osobno (opóźnienie procesora 0 ms, ten sam sygnał odniesienia i ten sam mikrofon) i wpisz wynik Delay Findera jako czas dotarcia. Aplikacja porówna różnice z obliczeniem. Wartości wpisujesz ręcznie. Bezpośredniego połączenia ze Smaartem na iPhonie nie ma, szczegóły w raporcie.</p>
+  <div id="smBody"></div>
+  <h2 class="group-title">Porównanie z obliczeniem</h2>
+  <div class="group" id="smOut"></div>
+  <button class="btn" id="smCopy" type="button">Kopiuj opóźnienia z pomiaru</button>
+</main>
+
+<main id="tab-db" role="tabpanel" aria-labelledby="t-db" hidden>
+  <h1>Baza</h1>
+  <h2 class="group-title" style="margin-top:4px">Suby</h2>
+  <div class="group" id="dbSubs"></div>
+  <h2 class="group-title">Topy i koaksjale</h2>
+  <div class="group" id="dbTops"></div>
+  <p class="group-foot">Dane z kart katalogowych Seeburg i biblioteki HDLM 8 + DSP2.6 (wersja 6.3, 29.06.2026). Zdjęcia pochodzą z kart katalogowych. Dotknij modelu, aby zobaczyć szczegóły.</p>
+</main>
+
+<main id="tab-info" role="tabpanel" aria-labelledby="t-info" hidden>
+  <h1>Info</h1>
+  <div class="prose">
+    <h2>Co liczy aplikacja</h2>
+    <p>Opóźnienie, które trzeba dodać jednemu z dwóch głośników, żeby dźwięk z obu dotarł do wybranego punktu w tej samej chwili. Punktem może być miejsce DJ-a, FOH albo dowolne inne miejsce. Opóźniany jest ten głośnik, którego dźwięk dociera wcześniej. Ujemnego opóźnienia nie ma.</p>
+    <h2>Wzór</h2>
+    <div class="formula">c = 331,3 · √(1 + T / 273,15)   [m/s]
+Δ = (d_A − d_B) / c · 1000 + (L_A − L_B)   [ms]
+Δ &gt; 0 → opóźnij B o Δ
+Δ &lt; 0 → opóźnij A o |Δ|</div>
+    <p><code>d</code> to odległość po skosie do punktu odniesienia w metrach, <code>L</code> to czas przejścia z tabeli Time-Alignment Seeburga dla wybranego presetu, <code>T</code> temperatura w °C.</p>
+    <h2>Zgodność z arkuszem Seeburga</h2>
+    <p>Wzór jest taki sam jak w arkuszu „TIME ALIGNMENT KALKULATOR 3”: różnica czasów z tabeli, przeliczona na metry, plus różnica odległości od punktu odniesienia (FOH). Dodatni wynik oznacza opóźnienie topa, ujemny opóźnienie suba. Różnice: arkusz zakłada stałe 343 m/s, a aplikacja liczy prędkość dźwięku z temperatury, i sama podstawia czasy z bazy.</p>
+    <h2>Inne układy</h2>
+    <ul>
+      <li>Sub i top w wieży (top na stosie subów, także obok siebie) albo osobno, od DJ-a lub FOH.</li>
+      <li>Do 4 skrzyń A w stosie lub obok siebie: grają ten sam sygnał, więc każda dostaje tę samą wartość, a między nimi jest 0 ms.</li>
+      <li>Głośnik główny i opóźniający (delay line): punktem odniesienia jest miejsce słuchacza.</li>
+      <li>Dwa suby albo dwa topy: czasy z biblioteki też się odejmują.</li>
+      <li>Głośnik spoza bazy: wybierz „Inny głośnik”, wtedy liczy się tylko odległość.</li>
+    </ul>
+    <h2>Front System: układ subwooferów</h2>
+    <p>Linia: suby obok siebie, bez opóźnień. Łuk: suby w linii z opóźnieniami, jakby stały na łuku o wybranym kącie. End-fire: suby jeden za drugim, każdy bliższy publiczności opóźniony o odstęp / c, dzięki czemu z przodu sumują się, a z tyłu znoszą. Gradient: dwa suby, tylny opóźniony i z odwróconą polaryzacją, daje kardioidę. Zasady odstępów z arkusza S.A.D.: ½ długości fali dla układów poziomych, ¼ dla end-fire i gradientu.</p>
+    <h2>Trzeci głośnik (C)</h2>
+    <p>Włącz go w sekcji Głośniki (np. główny mid/high, sub i front fill). Każdy głośnik opóźnia się do najpóźniejszego: opóźnienie = czas dotarcia najpóźniejszego minus własny, gdzie czas dotarcia to droga / prędkość dźwięku + czas przejścia z tabeli Seeburga.</p>
+    <h2>Dalmierz</h2>
+    <p>Odległości wpisujesz ręcznie albo wklejasz. Jeśli dalmierz w trybie klawiatury Bluetooth wpisuje wartość do pola, Enter przechodzi do następnego. Przeglądarka w iPhonie (Safari) nie obsługuje Web Bluetooth, więc bezpośrednie parowanie z Leica DISTO nie jest możliwe z tej strony.</p>
+    <h2>Czego aplikacja nie robi</h2>
+    <ul>
+      <li>Nie uwzględnia wilgotności ani ciśnienia. Wpływ jest mniejszy niż 0,01 ms przy różnicy dróg rzędu metra.</li>
+      <li>Nie dodaje opóźnień wewnętrznych presetów procesora (np. delay w presetach cardioid). Wynik wpisujesz na wierzch tego, co preset już zawiera.</li>
+      <li>Nie zastępuje pomiaru. Traktuj wynik jako punkt startowy i sprawdź go w Smaarcie w miejscu odniesienia.</li>
+    </ul>
+    <h2>Wpływ temperatury</h2>
+    <p>Przy różnicy dróg 1 m zmiana o 10 °C przesuwa wynik o około 0,05 ms. Na większych dystansach różnica rośnie: 50 m to 145,7 ms przy 20 °C i 150,9 ms przy 0 °C.</p>
+    <h2>Działanie bez internetu</h2>
+    <p>Cała baza i zdjęcia są zapisane w aplikacji. Nic nie jest pobierane z sieci.</p>
+  </div>
+</main>
+
+</div>
+
+<nav class="tabbar" aria-label="Sekcje">
+  <div class="in" role="tablist">
+    <button class="tab" id="t-calc" role="tab" aria-selected="true" aria-controls="tab-calc" data-tab="calc">
+      <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M3 14c2.5 0 2.5-7 5-7s2.5 14 5 14 2.5-14 5-14 2.5 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Kalkulator</button>
+    <button class="tab" id="t-plan" role="tab" aria-selected="false" aria-controls="tab-plan" data-tab="plan">
+      <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="5.5" cy="21" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="16" y="17" width="7" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 20l6-8M8 21.5h8" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 2.2" fill="none"/></svg>Układ</button>
+    <button class="tab" id="t-sm" role="tab" aria-selected="false" aria-controls="tab-sm" data-tab="sm"><svg viewBox="0 0 28 28" aria-hidden="true"></svg>Smaart</button>
+    <button class="tab" id="t-db" role="tab" aria-selected="false" aria-controls="tab-db" data-tab="db">
+      <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="5" y="4" width="18" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="14" cy="16" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="14" cy="8.5" r="1.2" fill="currentColor"/></svg>Baza</button>
+    <button class="tab" id="t-info" role="tab" aria-selected="false" aria-controls="tab-info" data-tab="info">
+      <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 13v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="14" cy="9.3" r="1.2" fill="currentColor"/></svg>Info</button>
+  </div>
+</nav>

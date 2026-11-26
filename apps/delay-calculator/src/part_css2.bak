@@ -1,0 +1,44 @@
+
+/* ===== Rozszerzenia: dwa dowolne głośniki, wyjaśnienie wyniku, zakładka Układ ===== */
+:root { --b: #E07600; --a: #0088FF; --b-text: #B45F00; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --b: #FF9F0A; --a: #0091FF; --b-text: #FFB340; } }
+:root[data-theme="dark"] { --b: #FF9F0A; --a: #0091FF; --b-text: #FFB340; }
+
+.tabbar .in { grid-template-columns: repeat(4, 1fr); }
+.row > .k { max-width: 58%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row.block > .k { max-width: none; }
+
+.badge {
+  display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  font: 700 12px/1 var(--font); color: #fff; margin-right: 6px; vertical-align: 1px;
+}
+.badge.a { background: var(--a); }
+.badge.b { background: var(--b); }
+
+/* Wiersze z opisem */
+.why { padding: 12px var(--s-4); position: relative; }
+.why + .why::before { content: ""; position: absolute; top: 0; left: var(--s-4); right: 0; height: .5px; background: var(--sep); }
+.why .top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-3); }
+.why .t { font: 600 var(--t-body)/22px var(--font); }
+.why .r { font: 600 var(--t-body)/22px var(--font); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.why .r.a { color: var(--accent-text); }
+.why .r.b { color: var(--b-text); }
+.why .r.n { color: var(--label-2); font-weight: 500; }
+.why .d { margin: 2px 0 0; font: 400 var(--t-sub)/20px var(--font); color: var(--label-2); }
+.why.final { background: var(--fill); }
+.why.final .d b { color: var(--label); font-weight: 600; }
+
+/* Zakładka Układ */
+.stage { background: #FFFFFF; border-radius: var(--r-card); padding: 10px; overflow: hidden; }
+.stage svg { display: block; width: 100%; height: auto; }
+.stage .ink { fill: #1C1C1E; }
+.stage .mut { fill: #6C6C70; }
+.stage .halo { paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; }
+.legend { display: grid; gap: 0; }
+.legend .why .d { margin-top: 0; }
+.note-pill { display: inline-block; margin: 6px 0 0; padding: 2px 8px; border-radius: 999px; background: var(--fill); color: var(--label-2); font: 400 var(--t-cap)/16px var(--font); }
+
+.optgroup-hint { color: var(--label-3); }
+
+.photo { display: grid; place-items: center; background: #FFFFFF; border-radius: 10px; padding: 8px; margin-bottom: 12px; }
+.photo img { max-width: 100%; max-height: 180px; height: auto; display: block; }

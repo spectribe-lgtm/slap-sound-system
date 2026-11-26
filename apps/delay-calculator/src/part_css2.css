@@ -108,3 +108,5 @@ input[type=range] { accent-color: var(--accent); height: 32px; }
 :root:root .seg.sq input:checked + span { background: var(--sc); color: #06121A; border-color: var(--sc); box-shadow: none; }
 :root:root .seg.sq input:focus-visible + span { outline: 2px solid var(--sc); outline-offset: 2px; }
 .spkuse { padding-bottom: 6px; }
+
+#fsLay { display: block; width: 100%; height: auto; border-radius: 12px; background: #0B0D10; }

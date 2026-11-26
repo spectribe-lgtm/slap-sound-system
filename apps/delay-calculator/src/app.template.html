@@ -316,6 +316,8 @@ input[type=range] { accent-color: var(--accent); height: 32px; }
 :root:root .seg.sq input:focus-visible + span { outline: 2px solid var(--sc); outline-offset: 2px; }
 .spkuse { padding-bottom: 6px; }
 
+#fsLay { display: block; width: 100%; height: auto; border-radius: 12px; background: #0B0D10; }
+
 /* ===== Wersja 4: ciemny motyw narzędziowy, zakładki u góry (styl aplikacji typu live-audio multi-tool) ===== */
 :root:root:root {
   --bg: #111418; --card: #1A1D24; --label: #E8EAED; --label-2: rgba(232,234,237,.62); --label-3: rgba(232,234,237,.32);
@@ -485,6 +487,8 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
         <div class="fsticks"><span>30</span><span>40</span><span>50</span><span>60</span><span>80</span><span>100</span></div></div>
     </div>
 
+    <h2 class="group-title">Układ subów w skali (widok z góry)</h2>
+    <div class="stage"><canvas id="fsLay" width="640" height="300" role="img" aria-label="Rozmieszczenie skrzyń subwooferów w skali, z odstępami"></canvas></div>
     <h2 class="group-title">Pole dźwięku (widok z góry)</h2>
     <div class="stage"><canvas id="fsCv" width="640" height="640" role="img" aria-label="Mapa pola dźwięku subwooferów widziana z góry"></canvas></div>
     <div class="group" style="margin-top:12px"><div class="row block"><div class="seg" id="segFSView" role="radiogroup" aria-label="Widok mapy">
@@ -1268,12 +1272,52 @@ function fsDraw(tms) {
   for (let y = 10; y <= 30; y += 10) ctx.fillText(y + " m", 8, py(y) - 6);
   const m = modelOf(S.fs.A), dm = dimsOf(m), ppm = W / (FSX[1] - FSX[0]);
   F.src.forEach((s, i) => {
-    const w = Math.max(10, dm[1] * ppm), h = Math.max(10, dm[2] * ppm), X = px(s.x), Y = py(s.y);
+    const w = Math.max(4, dm[1] * ppm), h = Math.max(4, dm[2] * ppm), X = px(s.x), Y = py(s.y);
     ctx.fillStyle = s.pol < 0 ? "#7d2f2f" : "#3a3d44"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
     ctx.fillRect(X - w / 2, Y - h / 2, w, h); ctx.strokeRect(X - w / 2, Y - h / 2, w, h);
-    ctx.fillStyle = "#fff"; ctx.font = "bold 18px -apple-system, sans-serif"; ctx.textAlign = "center"; ctx.fillText(String(i + 1), X, Y + 6); ctx.textAlign = "start";
+    ctx.fillStyle = "#fff"; ctx.font = "bold 18px -apple-system, sans-serif"; ctx.textAlign = "center"; ctx.fillText(String(i + 1), X, Y - Math.max(h, 8) / 2 - 6); ctx.textAlign = "start";
   });
   ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.font = "20px -apple-system, sans-serif"; ctx.fillText("publiczność ↑", W - 150, 28);
+}
+
+/* Układ subów w skali: skrzynie w prawdziwych wymiarach z karty katalogowej, z widocznymi odstępami */
+function fsLayout() {
+  const cv = $("fsLay"); if (!cv) return;
+  const ctx = cv.getContext("2d"), W = cv.width, H = cv.height, { src } = fsSources(), m = modelOf(S.fs.A), dm = dimsOf(m);
+  const bw = dm[1], bd = dm[2];
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  src.forEach(s => { x0 = Math.min(x0, s.x - bw / 2); x1 = Math.max(x1, s.x + bw / 2); y0 = Math.min(y0, s.y - bd / 2); y1 = Math.max(y1, s.y + bd / 2); });
+  const padX = 0.5, padY = 0.9, ppm = Math.min(320, (W - 60) / (x1 - x0 + 2 * padX), (H - 90) / (y1 - y0 + 2 * padY));
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, px = x => W / 2 + (x - cx) * ppm, py = y => H / 2 + 6 - (y - cy) * ppm;
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = "#0B0D10"; ctx.fillRect(0, 0, W, H);
+  ctx.font = "18px -apple-system, sans-serif"; ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fillText("publiczność ↑", W / 2, 24);
+  const overlap = (S.fs.type === "end" || S.fs.type === "grad") ? S.fs.d < bd - 1e-6 : S.fs.d < bw - 1e-6;
+  src.forEach((s, i) => {
+    const w = bw * ppm, h = bd * ppm, X = px(s.x) - w / 2, Y = py(s.y + bd / 2);
+    ctx.fillStyle = s.pol < 0 ? "#7d2f2f" : "#3a3d44"; ctx.strokeStyle = overlap ? "#ff6b5b" : "#4C8DFF"; ctx.lineWidth = 2.5;
+    ctx.fillRect(X, Y, w, h); ctx.strokeRect(X, Y, w, h);
+    ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.fillRect(X, Y, w, Math.min(6, h * .12));           // front skrzyni (strona publiczności)
+    ctx.fillStyle = "#fff"; ctx.font = "bold " + Math.max(14, Math.min(26, w * .4)) + "px -apple-system, sans-serif"; ctx.fillText(String(i + 1), X + w / 2, Y + h / 2 + 7);
+  });
+  /* wymiary: odstęp środków i szczelina między skrzyniami */
+  ctx.lineWidth = 1.5; ctx.font = "16px -apple-system, sans-serif";
+  const line = (ax, ay, bx, by, txt, dy) => {
+    ctx.strokeStyle = "#E8D44D"; ctx.fillStyle = "#E8D44D"; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+    [[ax, ay], [bx, by]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill(); });
+    if (dy === 0) { ctx.textAlign = "left"; ctx.fillText(txt, ax + 10, (ay + by) / 2 + 5); ctx.textAlign = "center"; } else ctx.fillText(txt, (ax + bx) / 2, (ay + by) / 2 + dy);
+  };
+  const horiz = !(S.fs.type === "end" || S.fs.type === "grad"), gap = Math.round((S.fs.d - (horiz ? bw : bd)) * 100);
+  if (src.length > 1) {
+    const a = src[0], b = src[1];
+    const gtxt = gap >= 0 ? "szczelina " + gap + " cm" : "nakładają się o " + (-gap) + " cm";
+    if (horiz) line(px(a.x), py(a.y) - bd * ppm / 2 - 14, px(b.x), py(a.y) - bd * ppm / 2 - 14, "środek–środek " + fmt(S.fs.d * 100, 0) + " cm", -8);
+    else line(px(a.x) + bw * ppm / 2 + 16, py(a.y), px(b.x) + bw * ppm / 2 + 16, py(b.y), fmt(S.fs.d * 100, 0) + " cm", 0);
+    ctx.fillStyle = overlap ? "#ff6b5b" : "rgba(255,255,255,.75)";
+    ctx.fillText(gtxt + (overlap ? " – za blisko" : ""), W / 2, H - 28);
+  }
+  ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fillText(`skrzynia ${esc(m.name)}: ${fmt(bw * 100, 0)} × ${fmt(bd * 100, 0)} cm (szer. × głęb.) · skala ${fmt(ppm / 100, 1)} px/cm`, W / 2, H - 8);
+  ctx.textAlign = "start";
 }
 function fsLoop(t) {
   fsRaf = null;
@@ -1319,7 +1363,7 @@ function fsRender() {
   const w = $("fwarn"); const est = q.act.filter(k => q.P[k].est);
   w.hidden = !est.length; if (est.length) w.textContent = `Preset ${est.join(" i ")} nie ma wpisu w tabeli Time-Alignment Seeburga, przyjęto czas z presetu HP. Sprawdź pomiarem.`;
   /* mapa */
-  fsCompute(); fsDraw(performance.now());
+  fsCompute(); fsDraw(performance.now()); fsLayout();
   $("fsMapNote").textContent = f.view === "wave"
     ? "Animacja pokazuje chwilowe ciśnienie na wybranej częstotliwości (czerwony: nadciśnienie, niebieski: podciśnienie), spowolniona. Widać, dokąd fala się sumuje, a gdzie się znosi."
     : "Pasma co 3 dB. 0 dB to najgłośniejsze miejsce dalej niż 3 m od subów, ciemny niebieski to −36 dB i mniej. Dla każdej częstotliwości mapa liczy się od nowa.";
