@@ -1153,13 +1153,16 @@ function fsSources() {
   let n = Math.max(1, Math.min(12, Math.round(f.n))); const out = [];
   if (f.type === "grad") n = 2;
   if (f.type === "line" || f.type === "arc") {
-    const half = (n - 1) / 2, th = Math.min(170, Math.max(10, f.arc)) * Math.PI / 180;
-    const R = f.type === "arc" && n > 1 ? (n - 1) * d / (2 * Math.sin(th / 2)) : 0;
+    /* wzór z arkusza S.A.D. (Setups!S, delayed array): opóźnienie = odległość między pozycją na łuku a pozycją w linii, odjęte minimum */
+    const half = (n - 1) / 2, A = Math.min(170, Math.max(10, f.arc));
+    const r = f.type === "arc" && n > 1 ? 360 / A * (n - 1) * d / (2 * Math.PI) : 0;
+    const Sd = [];
     for (let i = 0; i < n; i++) {
-      const x = (i - half) * d; let t = 0;
-      if (R) t = R * (1 - Math.cos(Math.asin(Math.min(1, Math.abs(x) / R)))) / c * 1000;
-      out.push({ x, y: 0, t, pol: 1 });
+      const M = i - half, N = n > 1 ? M * A / (n - 1) * Math.PI / 180 : 0;
+      Sd.push(r ? Math.hypot(Math.cos(N) * r - r, Math.sin(N) * r - M * d) : 0);
     }
+    const S0 = Math.min(...Sd);
+    for (let i = 0; i < n; i++) out.push({ x: (i - half) * d, y: 0, t: (Sd[i] - S0) / c * 1000, pol: 1 });
   } else if (f.type === "end") {
     for (let i = 0; i < n; i++) out.push({ x: 0, y: (i - (n - 1)) * d, t: i * d / c * 1000, pol: 1 });
   } else { out.push({ x: 0, y: 0, t: 0, pol: 1 }, { x: 0, y: -d, t: d / c * 1000, pol: -1 }); }
