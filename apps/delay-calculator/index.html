@@ -368,6 +368,13 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
 #tileB.on, #ftileB.on { background: var(--b); }
 #ftileA.on { background: var(--a); }
 #ftileC.on { background: var(--c); }
+
+.tabbar .in { grid-template-columns: repeat(6, 1fr); }
+.tab { font-size: 15px; }
+.splbig { text-align: center; padding: 8px 0 0; }
+.splnum { font: 800 84px/1 var(--font); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.splun { font: 600 16px/24px var(--font); color: var(--text-2, #9aa0a6); }
+#splCv, #splSp { display: block; width: 100%; height: auto; border-radius: 12px; background: #0B0D10; }
 </style>
 </head>
 <body>
@@ -558,6 +565,37 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
   <button class="btn" id="smCopy" type="button">Kopiuj opóźnienia z pomiaru</button>
 </main>
 
+<main id="tab-spl" role="tabpanel" aria-labelledby="t-spl" hidden>
+  <h1>SPL</h1>
+  <div class="splbig"><div class="splnum" id="splNow">--</div><div class="splun" id="splUn">dB(A) F</div></div>
+  <div class="stage" style="margin-top:8px"><canvas id="splCv" width="640" height="260" role="img" aria-label="Przebieg poziomu dźwięku w czasie"></canvas></div>
+  <div class="group" style="margin-top:12px">
+    <div class="row block"><button class="btn" id="splGo" type="button" style="margin-top:0">Włącz pomiar</button></div>
+    <div class="row block"><div class="seg" id="segW" role="radiogroup" aria-label="Krzywa ważenia">
+      <label><input type="radio" name="splw" value="A"><span>A</span></label><label><input type="radio" name="splw" value="C"><span>C</span></label><label><input type="radio" name="splw" value="Z"><span>Z (płasko)</span></label></div></div>
+    <div class="row block"><div class="seg" id="segT" role="radiogroup" aria-label="Stała czasowa">
+      <label><input type="radio" name="splt" value="F"><span>Fast 125 ms</span></label><label><input type="radio" name="splt" value="S"><span>Slow 1 s</span></label></div></div>
+  </div>
+  <div class="group" style="margin-top:12px">
+    <div class="row"><span class="k">Leq (od resetu)</span><span class="v mono" id="splLeq">--</span></div>
+    <div class="row"><span class="k">Lmax</span><span class="v mono" id="splMax">--</span></div>
+    <div class="row"><span class="k">Lmin</span><span class="v mono" id="splMin">--</span></div>
+    <div class="row"><span class="k">Lpeak (szczyt, Z)</span><span class="v mono" id="splPk">--</span></div>
+    <div class="row block"><button class="btn" id="splReset" type="button" style="margin-top:0">Zeruj Leq, Lmax, Lmin, Lpeak</button></div>
+  </div>
+  <h2 class="group-title">Widmo (bez ważenia)</h2>
+  <div class="stage"><canvas id="splSp" width="640" height="220" role="img" aria-label="Widmo sygnału z mikrofonu"></canvas></div>
+  <h2 class="group-title">Kalibracja</h2>
+  <div class="group">
+    <div class="row"><label class="k" for="splCal">Przesunięcie dBFS → dB SPL</label>
+      <div class="num"><input id="splCal" inputmode="decimal" autocomplete="off"><span class="u">dB</span></div></div>
+    <div class="row"><label class="k" for="splRef">Wskazanie miernika wzorcowego</label>
+      <div class="num"><input id="splRef" inputmode="decimal" autocomplete="off" placeholder="np. 94"><span class="u">dB</span></div></div>
+    <div class="row block"><button class="btn" id="splSet" type="button" style="margin-top:0">Skalibruj do tego wskazania</button></div>
+  </div>
+  <p class="group-foot" id="splNote">Mikrofon telefonu nie jest przyrządem pomiarowym. Bez kalibracji liczby są orientacyjne i mają stałe przesunięcie względem prawdziwego SPL. Skalibruj na kalibratorze (np. 94 dB przy 1 kHz) albo na wzorcowym mierniku, ten sam głośny sygnał, ten sam układ mikrofonu. Zwykły mikrofon telefonu przesterowuje się zwykle w okolicach 100 do 110 dB SPL, a przy basie z subów jego odpowiedź poniżej 100 Hz bywa osłabiona, więc przy dużych poziomach i na niskich tonach wynik jest niedoszacowany. Wyłączam automatyczną regulację wzmocnienia i redukcję szumów, jeśli system na to pozwala.</p>
+</main>
+
 <main id="tab-db" role="tabpanel" aria-labelledby="t-db" hidden>
   <h1>Baza</h1>
   <h2 class="group-title" style="margin-top:4px">Suby</h2>
@@ -616,6 +654,7 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
     <button class="tab" id="t-plan" role="tab" aria-selected="false" aria-controls="tab-plan" data-tab="plan">
       <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="5.5" cy="21" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="16" y="17" width="7" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 20l6-8M8 21.5h8" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 2.2" fill="none"/></svg>Układ</button>
     <button class="tab" id="t-sm" role="tab" aria-selected="false" aria-controls="tab-sm" data-tab="sm"><svg viewBox="0 0 28 28" aria-hidden="true"></svg>Smaart</button>
+    <button class="tab" id="t-spl" role="tab" aria-selected="false" aria-controls="tab-spl" data-tab="spl">SPL</button>
     <button class="tab" id="t-db" role="tab" aria-selected="false" aria-controls="tab-db" data-tab="db">
       <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="5" y="4" width="18" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="14" cy="16" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="14" cy="8.5" r="1.2" fill="currentColor"/></svg>Baza</button>
     <button class="tab" id="t-info" role="tab" aria-selected="false" aria-controls="tab-info" data-tab="info">
@@ -1078,14 +1117,124 @@ function update(syncIn = true) {
 
 /* Karty */
 function showTab(name) {
-  ["calc", "plan", "sm", "db", "info"].forEach(t => {
+  ["calc", "plan", "sm", "spl", "db", "info"].forEach(t => {
     $("tab-" + t).hidden = t !== name;
     $("t-" + t).setAttribute("aria-selected", String(t === name));
   });
   window.scrollTo(0, 0);
   if (name === "calc") fsRender();
+  if (name !== "spl" && typeof splStop === "function") splStop();
 }
 document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => showTab(t.dataset.tab)));
+
+
+/* ============ SPL: pomiar poziomu z mikrofonu telefonu, ważenie A/C/Z (filtry IIR), Fast/Slow, Leq/Lmax/Lmin/Lpeak ============ */
+const SPLK = "seeburg-spl-v1";
+let SP = { w: "A", t: "F", cal: 100 };
+try { Object.assign(SP, JSON.parse(localStorage.getItem(SPLK) || "{}")); } catch (e) {}
+const splSave = () => { try { localStorage.setItem(SPLK, JSON.stringify(SP)); } catch (e) {} };
+let splCtx = null, splStream = null, splNode = null, splAn = null, splOn = false, splRaf = null;
+let spM = { msF: 0, msS: 0, eSum: 0, tSum: 0, max: -1e9, min: 1e9, pk: 0, hist: [], lastBlk: 0, fs: 48000, clip: 0 };
+function splReset() { Object.assign(spM, { eSum: 0, tSum: 0, max: -1e9, min: 1e9, pk: 0, hist: [], clip: 0 }); }
+/* filtr drugiego rzędu z transmitancji analogowej (b2 s² + b1 s + b0)/(s² + a1 s + a0), transformacja dwuliniowa */
+function bilin(fs, b2, b1, b0, a1, a0) {
+  const K = 2 * fs, K2 = K * K, A0 = K2 + a1 * K + a0;
+  return { b0: (b2 * K2 + b1 * K + b0) / A0, b1: (2 * b0 - 2 * b2 * K2) / A0, b2: (b2 * K2 - b1 * K + b0) / A0, a1: (2 * a0 - 2 * K2) / A0, a2: (K2 - a1 * K + a0) / A0, z1: 0, z2: 0 };
+}
+function splFilters(fs, w) {
+  if (w === "Z") return [];
+  const tp = 2 * Math.PI, pw = f => 2 * fs * Math.tan(Math.PI * f / fs), w1 = pw(20.598997), w2 = pw(12194.217), w3 = pw(737.86223), w4 = pw(107.65265);   // bieguny z prewarpingiem
+  const f = [bilin(fs, 1, 0, 0, 2 * w1, w1 * w1)];                                   // s² / (s + w1)²
+  if (w === "A") { f.push(bilin(fs, 1, 0, 0, w3 + w4, w3 * w4)); f.push(bilin(fs, 0, 0, w2 * w2, 2 * w2, w2 * w2)); }
+  else f.push(bilin(fs, 0, 0, w2 * w2, 2 * w2, w2 * w2));
+  /* normalizacja do 0 dB przy 1 kHz */
+  let g = 1; const om = 2 * Math.PI * 1000 / fs, zr = Math.cos(om), zi = -Math.sin(om);
+  f.forEach(c => {
+    const nr = c.b0 + c.b1 * zr + c.b2 * (zr * zr - zi * zi), ni = c.b1 * zi + c.b2 * 2 * zr * zi, dr = 1 + c.a1 * zr + c.a2 * (zr * zr - zi * zi), di = c.a1 * zi + c.a2 * 2 * zr * zi;
+    g *= Math.hypot(nr, ni) / Math.hypot(dr, di);
+  });
+  f[0].b0 /= g; f[0].b1 /= g; f[0].b2 /= g;
+  return f;
+}
+let spFilt = [];
+function splProcess(buf) {
+  const fs = spM.fs, n = buf.length; let sumW = 0, pk = 0;
+  for (let i = 0; i < n; i++) {
+    const x = buf[i], ax = Math.abs(x); if (ax > pk) pk = ax;
+    let y = x;
+    for (const c of spFilt) { const o = c.b0 * y + c.z1; c.z1 = c.b1 * y - c.a1 * o + c.z2; c.z2 = c.b2 * y - c.a2 * o; y = o; }
+    sumW += y * y;
+  }
+  const ms = sumW / n, dt = n / fs;
+  const aF = 1 - Math.exp(-dt / 0.125), aS = 1 - Math.exp(-dt / 1);
+  spM.msF += aF * (ms - spM.msF); spM.msS += aS * (ms - spM.msS);
+  spM.eSum += ms * dt; spM.tSum += dt; spM.pk = Math.max(spM.pk, pk); if (pk > 0.99) spM.clip = 60;
+  const L = (spM.t === "F" ? spM.msF : spM.msS), db = 10 * Math.log10(Math.max(L, 1e-14)) + SP.cal;
+  if (spM.tSum > 1) { spM.max = Math.max(spM.max, db); spM.min = Math.min(spM.min, db); }
+  spM.cur = db; spM.hist.push(db); if (spM.hist.length > 600) spM.hist.shift();
+}
+async function splStart() {
+  try {
+    splStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+  } catch (e) { $("splNote").textContent = "Brak dostępu do mikrofonu (" + (e.name || "błąd") + "). Zezwól na mikrofon w ustawieniach przeglądarki. Pomiar wymaga strony po HTTPS, uruchomionej jako aplikacja lub w Safari, nie w podglądzie osadzonym."; return; }
+  const AC = window.AudioContext || window.webkitAudioContext; splCtx = new AC(); await splCtx.resume();
+  spM.fs = splCtx.sampleRate; spFilt = splFilters(spM.fs, SP.w); spM.msF = spM.msS = 0;
+  const src = splCtx.createMediaStreamSource(splStream); splAn = splCtx.createAnalyser(); splAn.fftSize = 8192; splAn.smoothingTimeConstant = 0.6; src.connect(splAn);
+  splNode = splCtx.createScriptProcessor(2048, 1, 1); splNode.onaudioprocess = e => splProcess(e.inputBuffer.getChannelData(0));
+  src.connect(splNode); const mute = splCtx.createGain(); mute.gain.value = 0; splNode.connect(mute); mute.connect(splCtx.destination);
+  splOn = true; $("splGo").textContent = "Wyłącz pomiar"; splLoop();
+}
+function splStop() {
+  if (!splOn && !splCtx) return;
+  splOn = false; if (splRaf) cancelAnimationFrame(splRaf); splRaf = null;
+  try { splNode && (splNode.onaudioprocess = null, splNode.disconnect()); splStream && splStream.getTracks().forEach(t => t.stop()); splCtx && splCtx.close(); } catch (e) {}
+  splCtx = splStream = splNode = splAn = null; const b = $("splGo"); if (b) b.textContent = "Włącz pomiar";
+}
+const f1 = v => isFinite(v) && v > -1e8 && v < 1e8 ? fmt(v, 1) + " dB" : "--";
+function splDraw() {
+  const cur = spM.cur; $("splNow").textContent = cur === undefined || !splOn ? "--" : fmt(cur, 1);
+  $("splUn").textContent = "dB" + (SP.w === "Z" ? "" : "(" + SP.w + ")") + " " + SP.t + (spM.clip > 0 ? " · PRZESTEROWANIE" : "");
+  $("splUn").style.color = spM.clip > 0 ? "#ff6b5b" : "";
+  if (spM.clip > 0) spM.clip--;
+  $("splLeq").textContent = spM.tSum > 0 ? f1(10 * Math.log10(Math.max(spM.eSum / spM.tSum, 1e-14)) + SP.cal) : "--";
+  $("splMax").textContent = f1(spM.max); $("splMin").textContent = f1(spM.min);
+  $("splPk").textContent = spM.pk > 0 ? f1(20 * Math.log10(spM.pk) + SP.cal) : "--";
+  /* wykres przebiegu */
+  const cv = $("splCv"), c = cv.getContext("2d"), W = cv.width, H = cv.height; c.fillStyle = "#0B0D10"; c.fillRect(0, 0, W, H);
+  const lo = 30, hi = 130, y = v => H - 22 - (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo) * (H - 34);
+  c.strokeStyle = "rgba(255,255,255,.12)"; c.fillStyle = "rgba(255,255,255,.55)"; c.font = "16px -apple-system, sans-serif"; c.lineWidth = 1;
+  for (let v = 40; v <= 120; v += 20) { c.beginPath(); c.moveTo(0, y(v)); c.lineTo(W, y(v)); c.stroke(); c.fillText(v, 6, y(v) - 4); }
+  const h = spM.hist; if (h.length > 1) { c.strokeStyle = "#4C8DFF"; c.lineWidth = 2.5; c.beginPath(); h.forEach((v, i) => { const x = W - (h.length - 1 - i) / 600 * W; i ? c.lineTo(x, y(v)) : c.moveTo(x, y(v)); }); c.stroke(); }
+  c.fillStyle = "rgba(255,255,255,.45)"; c.fillText("ostatnie ok. 25 s", W - 150, H - 6);
+  /* widmo */
+  const sc = $("splSp"), s = sc.getContext("2d"), SW = sc.width, SH = sc.height; s.fillStyle = "#0B0D10"; s.fillRect(0, 0, SW, SH);
+  s.strokeStyle = "rgba(255,255,255,.12)"; s.fillStyle = "rgba(255,255,255,.55)"; s.font = "15px -apple-system, sans-serif";
+  const fx = f => (Math.log10(f) - Math.log10(20)) / (Math.log10(20000) - Math.log10(20)) * SW;
+  [31.5, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000].forEach(f => { s.beginPath(); s.moveTo(fx(f), 0); s.lineTo(fx(f), SH - 18); s.stroke(); s.fillText(f >= 1000 ? f / 1000 + "k" : f, fx(f) + 3, SH - 4); });
+  if (splOn && splAn) {
+    const d = new Float32Array(splAn.frequencyBinCount); splAn.getFloatFrequencyData(d); const bw = spM.fs / splAn.fftSize;
+    s.strokeStyle = "#E8D44D"; s.lineWidth = 2; s.beginPath(); let first = true;
+    for (let i = 1; i < d.length; i++) { const f = i * bw; if (f < 20 || f > 20000) continue; const v = Math.max(-110, Math.min(0, d[i])), yy = (SH - 22) * (-v / 110); first ? (s.moveTo(fx(f), yy), first = false) : s.lineTo(fx(f), yy); }
+    s.stroke();
+  }
+}
+function splLoop() { if (!splOn) { splDraw(); return; } splDraw(); splRaf = requestAnimationFrame(splLoop); }
+function splUI() {
+  document.querySelectorAll('#segW input').forEach(i => { i.checked = i.value === SP.w; }); document.querySelectorAll('#segT input').forEach(i => { i.checked = i.value === SP.t; });
+  $("splCal").value = fmt(SP.cal, 1); splDraw();
+}
+document.querySelectorAll('#segW input').forEach(i => i.addEventListener("change", () => { SP.w = i.value; splSave(); spFilt = splFilters(spM.fs, SP.w); spM.msF = spM.msS = 0; splReset(); splUI(); }));
+document.querySelectorAll('#segT input').forEach(i => i.addEventListener("change", () => { SP.t = i.value; spM.t = SP.t; splSave(); splUI(); }));
+spM.t = SP.t;
+$("splGo").addEventListener("click", () => { splOn ? (splStop(), splDraw()) : splStart(); });
+$("splReset").addEventListener("click", () => { splReset(); splDraw(); });
+$("splCal").addEventListener("change", e => { const v = parseFloat(String(e.target.value).replace(",", ".")); if (isFinite(v)) { SP.cal = v; splSave(); splReset(); splUI(); } });
+$("splSet").addEventListener("click", () => {
+  const ref = parseFloat(String($("splRef").value).replace(",", "."));
+  if (!isFinite(ref) || !splOn || spM.cur === undefined) { $("splNote").textContent = "Włącz pomiar, podaj wskazanie miernika wzorcowego i dopiero wtedy kalibruj, przy stałym sygnale."; return; }
+  SP.cal += ref - spM.cur; splSave(); splReset(); splUI();
+});
+splUI();
 
 /* Baza: lista modeli ze zdjęciami */
 const chev = '<svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';

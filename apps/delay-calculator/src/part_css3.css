@@ -33,3 +33,10 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
 #tileB.on, #ftileB.on { background: var(--b); }
 #ftileA.on { background: var(--a); }
 #ftileC.on { background: var(--c); }
+
+.tabbar .in { grid-template-columns: repeat(6, 1fr); }
+.tab { font-size: 15px; }
+.splbig { text-align: center; padding: 8px 0 0; }
+.splnum { font: 800 84px/1 var(--font); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.splun { font: 600 16px/24px var(--font); color: var(--text-2, #9aa0a6); }
+#splCv, #splSp { display: block; width: 100%; height: auto; border-radius: 12px; background: #0B0D10; }
