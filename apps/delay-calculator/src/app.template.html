@@ -453,6 +453,23 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
     <h2 class="group-title">Głośniki</h2>
     <div class="group" id="fsSpk"></div>
 
+    <h2 class="group-title">Odległość od punktu odniesienia</h2>
+    <div class="group">
+      <div class="row"><span class="k">Gdzie liczysz</span>
+        <label class="pick"><select id="fref" aria-label="Punkt odniesienia">
+          <option value="dj">Miejsce DJ-a</option><option value="foh">FOH</option><option value="other">Inny punkt</option></select><svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></label></div>
+      <div class="row" id=""><label class="k" for="fsDA">Do suba A (środka)</label>
+        <div class="num"><input id="fsDA" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+          <div class="stepper"><button type="button" data-step="fsDA" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsDA" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+      <div class="row" id=""><label class="k" for="fsDB">Do głośnika B</label>
+        <div class="num"><input id="fsDB" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+          <div class="stepper"><button type="button" data-step="fsDB" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsDB" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+      <div class="row" id="rowFSDC" hidden><label class="k" for="fsDC">Do głośnika C</label>
+        <div class="num"><input id="fsDC" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+          <div class="stepper"><button type="button" data-step="fsDC" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsDC" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    </div>
+    <p class="group-foot">Wpisz odległości zmierzone dalmierzem do środka układu subów i do każdego głośnika (po skosie, bez przeliczania).</p>
+
     <h2 class="group-title">Układ subwooferów (A)</h2>
     <div class="group">
       <div class="row block"><span class="k" style="margin-bottom:8px">Typ układu</span><div class="seg" id="segFSType" role="radiogroup" aria-label="Typ układu subwooferów">
@@ -478,22 +495,14 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
     </div>
     <p class="group-foot" id="fsNote"></p>
 
-    <h2 class="group-title">Odległość od punktu odniesienia</h2>
-    <div class="group">
-      <div class="row"><span class="k">Gdzie liczysz</span>
-        <label class="pick"><select id="fref" aria-label="Punkt odniesienia">
-          <option value="dj">Miejsce DJ-a</option><option value="foh">FOH</option><option value="other">Inny punkt</option></select><svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></label></div>
-      <div class="row" id=""><label class="k" for="fsDA">Do suba A (środka)</label>
-        <div class="num"><input id="fsDA" inputmode="decimal" autocomplete="off"><span class="u">m</span>
-          <div class="stepper"><button type="button" data-step="fsDA" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsDA" data-dir="1" aria-label="Więcej">+</button></div></div></div>
-      <div class="row" id=""><label class="k" for="fsDB">Do głośnika B</label>
-        <div class="num"><input id="fsDB" inputmode="decimal" autocomplete="off"><span class="u">m</span>
-          <div class="stepper"><button type="button" data-step="fsDB" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsDB" data-dir="1" aria-label="Więcej">+</button></div></div></div>
-      <div class="row" id="rowFSDC" hidden><label class="k" for="fsDC">Do głośnika C</label>
-        <div class="num"><input id="fsDC" inputmode="decimal" autocomplete="off"><span class="u">m</span>
-          <div class="stepper"><button type="button" data-step="fsDC" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsDC" data-dir="1" aria-label="Więcej">+</button></div></div></div>
-    </div>
-    <p class="group-foot">Wpisz odległości zmierzone dalmierzem do środka układu subów i do każdego głośnika (po skosie, bez przeliczania).</p>
+    <h2 class="group-title">Pole dźwięku (widok z góry)</h2>
+    <div class="stage" id="fsStage2"><canvas id="fsCv" width="640" height="640" role="img" aria-label="Mapa pola dźwięku subwooferów widziana z góry"></canvas></div>
+    <div class="group" style="margin-top:12px"><div class="row block"><div class="seg" id="segFSView" role="radiogroup" aria-label="Widok mapy">
+      <label><input type="radio" name="fsview" value="spl"><span>Poziom (dB)</span></label>
+      <label><input type="radio" name="fsview" value="wave"><span>Fala (animacja)</span></label>
+      <label><input type="radio" name="fsview" value="3d"><span>Fala 3D</span></label></div></div></div>
+    <div class="stage" id="fs3Stage" hidden><canvas id="fs3" width="640" height="560" role="img" aria-label="Widok 3D fali dźwiękowej w pomieszczeniu, obracany palcem"></canvas></div>
+    <p class="group-foot" id="fsMapNote"></p>
 
     <h2 class="group-title">Częstotliwość</h2>
     <div class="group">
@@ -504,13 +513,6 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
 
     <h2 class="group-title">Układ subów w skali (widok z góry)</h2>
     <div class="stage"><canvas id="fsLay" width="640" height="300" role="img" aria-label="Rozmieszczenie skrzyń subwooferów w skali, z odstępami"></canvas></div>
-    <h2 class="group-title">Pole dźwięku (widok z góry)</h2>
-    <div class="stage" id="fsStage2"><canvas id="fsCv" width="640" height="640" role="img" aria-label="Mapa pola dźwięku subwooferów widziana z góry"></canvas></div>
-    <div class="group" style="margin-top:12px"><div class="row block"><div class="seg" id="segFSView" role="radiogroup" aria-label="Widok mapy">
-      <label><input type="radio" name="fsview" value="spl"><span>Poziom (dB)</span></label>
-      <label><input type="radio" name="fsview" value="wave"><span>Fala (animacja)</span></label>
-      <label><input type="radio" name="fsview" value="3d"><span>Fala 3D</span></label></div></div></div>
-    <div class="stage" id="fs3Stage" hidden><canvas id="fs3" width="640" height="560" role="img" aria-label="Widok 3D fali dźwiękowej w pomieszczeniu, obracany palcem"></canvas></div>
     <h2 class="group-title">Pomieszczenie</h2>
     <div class="group">
       <div class="row"><label class="k" for="rw1">Ściana 1 (za subami)</label><input type="checkbox" id="rw1"></div>
@@ -524,8 +526,6 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
       <div class="row block"><input type="range" id="fsR" min="0.2" max="1" step="0.05" style="width:100%" aria-label="Współczynnik odbicia ścian"></div>
     </div>
     <p class="group-foot" id="fsWallPos"></p>
-    <p class="group-foot" id="fsMapNote"></p>
-
     <h2 class="group-title">Ustawienia procesora</h2>
     <div class="group" id="fsOut"></div>
     <p class="group-foot">Mapa: źródła punktowe, bez ścian i podłogi, suby jako dookólne (jak w arkuszu S.A.D. Merlijna van Veena). To punkt startowy, zawsze zmierz i sprawdź.</p>
