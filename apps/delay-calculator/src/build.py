@@ -49,7 +49,7 @@ out = root / "pwa"
 out.mkdir(exist_ok=True)
 (out / "index.html").write_text(html, encoding="utf-8")
 
-sw = """const CACHE = 'seeburg-delay-v4';
+sw = """const CACHE = 'seeburg-delay-v5';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

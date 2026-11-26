@@ -9,6 +9,7 @@
     <div class="tiles">
       <div class="tile" id="tileA"><div class="who" id="whoA">A</div><div class="val" id="valA">—</div><div class="hint" id="hintA"></div></div>
       <div class="tile" id="tileB"><div class="who" id="whoB">B</div><div class="val" id="valB">—</div><div class="hint" id="hintB"></div></div>
+      <div class="tile" id="tileC" hidden><div class="who" id="whoC">C</div><div class="val" id="valC">—</div><div class="hint" id="hintC"></div></div>
     </div>
     <p class="dsp" id="dsp"></p>
     <p class="warn" id="warn" hidden></p>
@@ -25,6 +26,13 @@
       <label class="pick"><select id="selB" aria-label="Model głośnika B"></select>
         <svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></label></div>
     <div class="row block" id="presetRowB"><span class="k" style="margin-bottom:8px">Preset głośnika B</span><div class="seg" id="segB" role="radiogroup" aria-label="Preset głośnika B"></div></div>
+    <div class="row block"><span class="k" style="margin-bottom:8px"><span class="badge c">C</span>Trzeci głośnik (front fill, mid/high…)</span>
+      <div class="seg" id="segUseC" role="radiogroup" aria-label="Głośnik C"><label><input type="radio" name="usec" value="0"><span>Wyłączony</span></label><label><input type="radio" name="usec" value="1"><span>Włączony</span></label></div></div>
+    <div id="grpC" hidden>
+      <div class="row"><span class="k"><span class="badge c">C</span>Głośnik</span>
+        <label class="pick"><select id="selC" aria-label="Model głośnika C"></select><svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></label></div>
+      <div class="row block" id="presetRowC"><span class="k" style="margin-bottom:8px">Preset głośnika C</span><div class="seg" id="segC" role="radiogroup" aria-label="Preset głośnika C"></div></div>
+    </div>
   </div>
   <p class="group-foot">Dowolne dwa głośniki: sub i top, dwa suby, głośnik główny i opóźniający. Głośnik spoza bazy wybierz jako „Inny głośnik”.</p>
 
@@ -61,14 +69,20 @@
     <div class="row"><label class="k" for="fR" id="kR">Wysokość ucha</label>
       <div class="num"><input id="fR" inputmode="decimal" autocomplete="off"><span class="u">m</span>
         <div class="stepper"><button type="button" data-step="fR" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fR" data-dir="1" aria-label="Więcej">+</button></div></div></div>
-    <div class="row" id="rowBA"><label class="k" for="bA" id="kbA">Spód A nad podłogą</label>
+    <div class="row" id="rowBA"><label class="k" for="bA" id="kbA">Wysokość spodu A</label>
       <div class="num"><input id="bA" inputmode="decimal" autocomplete="off"><span class="u">m</span>
         <div class="stepper"><button type="button" data-step="bA" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="bA" data-dir="1" aria-label="Więcej">+</button></div></div></div>
-    <div class="row" id="rowBB"><label class="k" for="bB" id="kbB">Spód B nad podłogą</label>
+    <div class="row" id="rowBB"><label class="k" for="bB" id="kbB">Wysokość spodu B</label>
       <div class="num"><input id="bB" inputmode="decimal" autocomplete="off"><span class="u">m</span>
         <div class="stepper"><button type="button" data-step="bB" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="bB" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    <div class="row" id="rowXC" hidden><label class="k" for="fXC">Do frontu C</label>
+      <div class="num"><input id="fXC" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+        <div class="stepper"><button type="button" data-step="fXC" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fXC" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    <div class="row" id="rowBC" hidden><label class="k" for="bC">Wysokość spodu C</label>
+      <div class="num"><input id="bC" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+        <div class="stepper"><button type="button" data-step="bC" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="bC" data-dir="1" aria-label="Więcej">+</button></div></div></div>
   </div>
-  <p class="group-foot">Wpisujesz tylko odległość w poziomie od ucha (lub FOH) do przedniej ścianki skrzyń i wysokość ucha nad podłogą (stojący DJ ok. 1,6 m, FOH ok. 1,2 m). Drogę po skosie i wysokości środków skrzyń aplikacja liczy sama z wymiarów modeli.</p>
+  <p class="group-foot">Wpisujesz tylko odległość w poziomie od ucha (lub FOH) do przedniej ścianki skrzyń i wysokość ucha nad podłogą (stojący DJ ok. 1,6 m, FOH ok. 1,2 m). Drogę po skosie i wysokości środków skrzyń aplikacja liczy sama z wymiarów modeli. Wartości z dalmierza możesz wpisać, wkleić (np. „3,215 m”) albo przeciągnąć skrzynię w zakładce Układ. Klawisz Enter przechodzi do następnego pola.</p>
 
   <h2 class="group-title">Warunki</h2>
   <div class="group">
@@ -89,6 +103,15 @@
   <p class="group-foot" id="stageNote"></p>
   <h2 class="group-title">Wartości do rysunku</h2>
   <div class="group legend" id="legend"></div>
+</main>
+
+<main id="tab-sm" role="tabpanel" aria-labelledby="t-sm" hidden>
+  <h1>Smaart</h1>
+  <p class="group-foot" style="margin-top:0">Zmierz w Smaarcie każdy głośnik osobno (opóźnienie procesora 0 ms, ten sam sygnał odniesienia i ten sam mikrofon) i wpisz wynik Delay Findera jako czas dotarcia. Aplikacja porówna różnice z obliczeniem. Wartości wpisujesz ręcznie. Bezpośredniego połączenia ze Smaartem na iPhonie nie ma, szczegóły w raporcie.</p>
+  <div id="smBody"></div>
+  <h2 class="group-title">Porównanie z obliczeniem</h2>
+  <div class="group" id="smOut"></div>
+  <button class="btn" id="smCopy" type="button">Kopiuj opóźnienia z pomiaru</button>
 </main>
 
 <main id="tab-db" role="tabpanel" aria-labelledby="t-db" hidden>
@@ -121,6 +144,10 @@
       <li>Dwa suby albo dwa topy: czasy z biblioteki też się odejmują.</li>
       <li>Głośnik spoza bazy: wybierz „Inny głośnik”, wtedy liczy się tylko odległość.</li>
     </ul>
+    <h2>Trzeci głośnik (C)</h2>
+    <p>Włącz go w sekcji Głośniki (np. główny mid/high, sub i front fill). Każdy głośnik opóźnia się do najpóźniejszego: opóźnienie = czas dotarcia najpóźniejszego minus własny, gdzie czas dotarcia to droga / prędkość dźwięku + czas przejścia z tabeli Seeburga.</p>
+    <h2>Dalmierz</h2>
+    <p>Odległości wpisujesz ręcznie albo wklejasz. Jeśli dalmierz w trybie klawiatury Bluetooth wpisuje wartość do pola, Enter przechodzi do następnego. Przeglądarka w iPhonie (Safari) nie obsługuje Web Bluetooth, więc bezpośrednie parowanie z Leica DISTO nie jest możliwe z tej strony.</p>
     <h2>Czego aplikacja nie robi</h2>
     <ul>
       <li>Nie uwzględnia wilgotności ani ciśnienia. Wpływ jest mniejszy niż 0,01 ms przy różnicy dróg rzędu metra.</li>
@@ -142,6 +169,7 @@
       <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M3 14c2.5 0 2.5-7 5-7s2.5 14 5 14 2.5-14 5-14 2.5 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Kalkulator</button>
     <button class="tab" id="t-plan" role="tab" aria-selected="false" aria-controls="tab-plan" data-tab="plan">
       <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="5.5" cy="21" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="14" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><rect x="16" y="17" width="7" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 20l6-8M8 21.5h8" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 2.2" fill="none"/></svg>Układ</button>
+    <button class="tab" id="t-sm" role="tab" aria-selected="false" aria-controls="tab-sm" data-tab="sm"><svg viewBox="0 0 28 28" aria-hidden="true"></svg>Smaart</button>
     <button class="tab" id="t-db" role="tab" aria-selected="false" aria-controls="tab-db" data-tab="db">
       <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="5" y="4" width="18" height="20" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="14" cy="16" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="14" cy="8.5" r="1.2" fill="currentColor"/></svg>Baza</button>
     <button class="tab" id="t-info" role="tab" aria-selected="false" aria-controls="tab-info" data-tab="info">

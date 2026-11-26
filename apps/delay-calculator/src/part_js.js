@@ -102,28 +102,36 @@ function geom(s) {
   const xA = s.x, xB = tower ? s.x : s.xB;
   const zA = baseA + hgtA / 2, zB = baseB + dB[0] / 2;            // środki akustyczne nad podłogą
   const rA = zA - s.hr, rB = zB - s.hr;                           // względem ucha
-  return { tower, n, stack, x: xA, xA, xB, zA, zB, topA: baseA + hgtA, baseA, baseB, hA: rA, hB: rB,
-           dA: Math.hypot(xA, rA), dB: Math.hypot(xB, rB), dims: { A: dA, B: dB } };
+  const mC = modelOf(s.C), dC = dimsOf(mC), xC = s.xC, zC = (s.bC || 0) + dC[0] / 2, rC = zC - s.hr;
+  return { tower, n, stack, x: xA, xA, xB, xC, zA, zB, zC, topA: baseA + hgtA, baseA, baseB, hA: rA, hB: rB, hC: rC,
+           dA: Math.hypot(xA, rA), dB: Math.hypot(xB, rB), dC: Math.hypot(xC, rC), dims: { A: dA, B: dB, C: dC } };
 }
 function compute(s) {
-  const mA = modelOf(s.A), mB = modelOf(s.B);
-  const pA = mA.presets.find(p => p.id === s.pA) || mA.presets[0];
-  const pB = mB.presets.find(p => p.id === s.pB) || mB.presets[0];
+  const mA = modelOf(s.A), mB = modelOf(s.B), mC = modelOf(s.C), useC = !!s.useC;
+  const pick = (m, id) => m.presets.find(p => p.id === id) || m.presets[0];
+  const pA = pick(mA, s.pA), pB = pick(mB, s.pB), pC = pick(mC, s.pC);
   const c = speedOfSound(s.T);
   const g = geom(s);
   const geo = (g.dA - g.dB) / c * 1000;                           // ms; <0: A bliżej, opóźnij A
-  const custom = !!(mA.custom || mB.custom);
+  const custom = !!(mA.custom || mB.custom || (useC && mC.custom));
   const lib = custom ? 0 : pA.L - pB.L;                           // ms; >0: A później, opóźnij B
-  const X = geo + lib;                                            // >0: opóźnij B, <0: opóźnij A
-  return { mA, mB, pA, pB, c, g, geo, lib, custom, X, delayA: X < 0 ? -X : 0, delayB: X > 0 ? X : 0 };
+  const X = geo + lib;                                            // różnica A−B
+  const act = useC ? ["A", "B", "C"] : ["A", "B"];
+  const D = { A: g.dA, B: g.dB, C: g.dC }, P = { A: pA, B: pB, C: pC };
+  const T = {};                                                   // czas dotarcia = droga / c + czas przejścia
+  act.forEach(k => { T[k] = D[k] / c * 1000 + (custom ? 0 : P[k].L); });
+  const Tm = Math.max(...act.map(k => T[k]));                     // opóźniamy do najpóźniejszego
+  const dl = k => (act.includes(k) ? Math.max(0, Tm - T[k]) : 0);
+  return { mA, mB, mC, pA, pB, pC, c, g, geo, lib, custom, X, useC, act, T, Tm, delayA: dl("A"), delayB: dl("B"), delayC: dl("C") };
 }
 
 /* ============ STAN ============ */
 const KEY = "seeburg-delay-v4";
 /* Przykład: wieża przy DJ-u. 2 × K Sub 1801 jedna na drugiej, na nich X8, front w jednej płaszczyźnie, ucho 1,6 m nad podłogą, 1,3 m poziomo. */
-const defaults = { A:"ksub1801", pA:"100", B:"x8", pB:"hp", nA:2, arr:"stack", place:"tower", x:1.3, xB:2.5, hr:1.6, bA:0, bB:0, T:20, ref:"dj" };
+const defaults = { A:"ksub1801", pA:"100", B:"x8", pB:"hp", nA:2, arr:"stack", place:"tower", x:1.3, xB:2.5, hr:1.6, bA:0, bB:0, useC:false, C:"x6", pC:"hp", xC:4, bC:0, sm:{ A:{}, B:{}, C:{} }, T:20, ref:"dj" };
 let S = Object.assign({}, defaults);
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
+["A", "B", "C"].forEach(k => { S.sm[k] = S.sm[k] || {}; });
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 const $ = id => document.getElementById(id);
 const fmt = (n, d = 2) => n.toFixed(d).replace(".", ",").replace(/^-0([,.]0+)?$/, "0$1");
@@ -149,6 +157,10 @@ function syncModels() {
   if (!mB.presets.some(p => p.id === S.pB)) S.pB = mB.presets[0].id;
   fillSeg($("segA"), "sa", mA.presets, S.pA, v => { S.pA = v; update(); });
   fillSeg($("segB"), "sb", mB.presets, S.pB, v => { S.pB = v; update(); });
+  const mC = modelOf(S.C);
+  if (!mC.presets.some(p => p.id === S.pC)) S.pC = mC.presets[0].id;
+  fillSeg($("segC"), "sc", mC.presets, S.pC, v => { S.pC = v; update(); });
+  $("presetRowC").hidden = !!mC.custom;
   $("presetRowA").hidden = !!mA.custom;
   $("presetRowB").hidden = !!mB.custom;
 }
@@ -158,7 +170,7 @@ const num = (key, step, lo, hi, d = 2) => ({ get: () => S[key], set: v => { S[ke
 const F = {
   nA: { get: () => S.nA, set: v => { S.nA = Math.min(4, Math.max(1, Math.round(v))); }, step: 1, lo: 1, hi: 4, d: 0 },
   fX: num("x", .05, .05, 200), fXB: num("xB", .05, .05, 200), fR: num("hr", .05, 0, 4),
-  bA: num("bA", .05, 0, 10), bB: num("bB", .05, 0, 10),
+  bA: num("bA", .05, 0, 10), bB: num("bB", .05, 0, 10), fXC: num("xC", .05, .05, 200), bC: num("bC", .05, 0, 10),
   temp: { get: () => S.T, set: v => { S.T = v; }, step: 1, lo: -30, hi: 60, d: 1 }
 };
 const parse = v => parseFloat(String(v).replace(",", ".").replace(/[^0-9.\-]/g, ""));
@@ -170,6 +182,14 @@ Object.keys(F).forEach(id => {
   inp.addEventListener("input", () => { const v = parse(inp.value); if (Number.isFinite(v)) { f.set(v); update(false); } });
   inp.addEventListener("blur", () => { const v = parse(inp.value); if (Number.isFinite(v)) f.set(Math.min(f.hi, Math.max(f.lo, v))); update(); });
   inp.addEventListener("focus", () => inp.select());
+  /* Enter (np. po wpisaniu z dalmierza w trybie klawiatury) przechodzi do następnego widocznego pola */
+  inp.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const list = Array.from(document.querySelectorAll("#tab-calc .num input")).filter(i => i.offsetParent !== null);
+    const nx = list[list.indexOf(inp) + 1];
+    if (nx) nx.focus(); else inp.blur();
+  });
 });
 document.querySelectorAll(".stepper button").forEach(b => b.addEventListener("click", () => {
   const f = F[b.dataset.step];
@@ -179,6 +199,8 @@ document.querySelectorAll(".stepper button").forEach(b => b.addEventListener("cl
 }));
 $("selA").addEventListener("change", e => { S.A = e.target.value; syncModels(); update(); });
 $("selB").addEventListener("change", e => { S.B = e.target.value; syncModels(); update(); });
+$("selC").addEventListener("change", e => { S.C = e.target.value; syncModels(); update(); });
+document.querySelectorAll('#segUseC input').forEach(i => i.addEventListener("change", () => { S.useC = i.value === "1"; update(); }));
 $("ref").addEventListener("change", e => { S.ref = e.target.value; update(); });
 document.querySelectorAll('#segPlace input').forEach(i => i.addEventListener("change", () => { S.place = i.value; update(); }));
 document.querySelectorAll('#segArr input').forEach(i => i.addEventListener("change", () => { S.arr = i.value; update(); }));
@@ -188,11 +210,25 @@ function whyRow(title, right, rcls, text, extra = "") {
   return `<div class="why ${extra}"><div class="top"><span class="t">${title}</span><span class="r ${rcls}">${right}</span></div><p class="d">${text}</p></div>`;
 }
 const who = (k, name) => `<span class="badge ${k.toLowerCase()}">${k}</span>${esc(name)}`;
+function multiRows(r, nm) {
+  const g = r.g, ref = REF[S.ref][1];
+  const rows = r.act.map(k => {
+    const d = g["d" + k], dl = r["delay" + k], L = r.custom ? null : r["p" + k].L;
+    return whyRow(who(k, nm[k]), dl > 0 ? `+${fmt(dl)} ms` : "0 ms", dl > 0 ? k.toLowerCase() : "n",
+      `Droga do ${ref}: ${fmt(d)} m, czyli ${fmt(d / r.c * 1000)} ms. Czas przejścia ${L === null ? "pominięty" : fmt(L, 1) + " ms"}. Dotarcie po ${fmt(r.T[k])} ms. ` +
+      (dl > 0 ? `Opóźnij o <b>${fmt(dl)} ms</b>.` : `To najpóźniejszy głośnik, zostaje <b>0 ms</b>.`));
+  });
+  return rows.join("") + whyRow("Zasada", "", "n", "Opóźnienie każdego głośnika = czas dotarcia najpóźniejszego minus jego własny. Czas dotarcia = droga / prędkość dźwięku + czas przejścia z tabeli Seeburga.", "final");
+}
 function render(r) {
   const g = r.g, ref = REF[S.ref];
   const nm = { A: (g.n > 1 ? g.n + "× " : "") + r.mA.name, B: r.mB.name };
   $("whoA").textContent = "A · " + nm.A;
   $("whoB").textContent = "B · " + nm.B;
+  nm.C = r.mC.name; $("whoC").textContent = "C · " + nm.C;
+  $("tileC").hidden = !r.useC; document.querySelector(".tiles").classList.toggle("three", r.useC);
+  $("grpC").hidden = !r.useC; $("rowXC").hidden = $("rowBC").hidden = !r.useC;
+  document.querySelectorAll('#segUseC input').forEach(i => { i.checked = i.value === (r.useC ? "1" : "0"); });
   $("kX").textContent = g.tower ? "Do frontu skrzyń" : "Do frontu A";
   $("kXB").textContent = "Do frontu B";
   $("ref").value = S.ref;
@@ -203,10 +239,10 @@ function render(r) {
     ? "B stoi na skrzyniach A, front wszystkich skrzyń leży w jednej płaszczyźnie. Aplikacja liczy drogi do środków skrzyń z ich wymiarów."
     : "Skrzynie stoją osobno: podajesz odległość każdej z nich i wysokość, na jakiej stoi jej spód.";
 
-  const ok = [S.x, S.xB, S.hr, S.T].every(Number.isFinite) && g.dA > 0 && g.dB > 0;
+  const ok = [S.x, S.xB, S.hr, S.T].every(Number.isFinite) && g.dA > 0 && g.dB > 0 && (!r.useC || (Number.isFinite(S.xC) && Number.isFinite(S.bC) && g.dC > 0));
   $("cval").textContent = fmt(r.c, 1) + " m/s";
   if (!ok) {
-    ["valA", "valB"].forEach(i => $(i).textContent = "—");
+    ["valA", "valB", "valC"].forEach(i => $(i).textContent = "—");
     $("dsp").textContent = "Wpisz odległości i temperaturę."; $("warn").hidden = true; $("why").innerHTML = ""; return;
   }
   const show = (k, ms) => {
@@ -215,8 +251,8 @@ function render(r) {
     $("tile" + k).classList.toggle("on", on);
     $("hint" + k).textContent = on ? "ustaw to opóźnienie" : "bez opóźnienia";
   };
-  show("A", r.delayA); show("B", r.delayB);
-  const ms = Math.max(r.delayA, r.delayB);
+  show("A", r.delayA); show("B", r.delayB); if (r.useC) show("C", r.delayC);
+  const ms = Math.max(r.delayA, r.delayB, r.delayC);
   const smp = fs => { const n = Math.round(ms / 1000 * fs); return `<b>${n}</b> próbek (${fmt(n / fs * 1000, 3)} ms)`; };
   $("dsp").innerHTML = `48 kHz: ${smp(48000)}<br>96 kHz: ${smp(96000)}`;
 
@@ -265,7 +301,7 @@ function render(r) {
     const off = (g.n - 1) / 2 * g.dims.A[1], ex = (Math.hypot(g.dA, off) - g.dA) / r.c * 1000;
     if (ex >= 0.05) spreadRow = whyRow("Skrzynie obok siebie", `${fmt(ex)} ms`, "n", `Skrajne skrzynie są o ${fmt(ex)} ms dalej od punktu odniesienia niż środek grupy. Nie koryguj tego opóźnieniem, bo to jeden sygnał. Różnica maleje z odległością.`);
   }
-  $("why").innerHTML = setupRow + geoRow + libRow + finalRow + procRow + spreadRow;
+  $("why").innerHTML = r.useC ? multiRows(r, nm) + spreadRow : setupRow + geoRow + libRow + finalRow + procRow + spreadRow;
 
   const fc = r.pA.lpf || r.pB.lpf || 100, loss = 20 * Math.log10(Math.abs(Math.cos(Math.PI * fc * Math.abs(r.X) / 1000)));
   const w = $("warn");
@@ -273,9 +309,9 @@ function render(r) {
   if (bad) { w.hidden = false; w.textContent = "Odległość po skosie nie może być mniejsza niż wysokość. Sprawdź wpisane wartości."; }
   else if (Math.abs(r.X) >= 8) { w.hidden = false; w.textContent = "Duża różnica. Sprawdź, czy odległości są wpisane poprawnie."; }
   else w.hidden = true;
-  const est = [r.pA.est && "A", r.pB.est && "B"].filter(Boolean);
+  const est = [r.pA.est && "A", r.pB.est && "B", r.useC && r.pC.est && "C"].filter(Boolean);
   if (est.length && !r.custom) { w.hidden = false; w.textContent = `Preset ${est.join(" i ")} nie ma wpisu w tabeli Time-Alignment Seeburga. Przyjęto czas z presetu HP (3,2 ms), sprawdź pomiarem.`; }
-  const unk = [r.mA.dimsUnknown && "A", r.mB.dimsUnknown && "B"].filter(Boolean);
+  const unk = [r.mA.dimsUnknown && "A", r.mB.dimsUnknown && "B", r.useC && r.mC.dimsUnknown && "C"].filter(Boolean);
   if (unk.length) { w.hidden = false; w.textContent = (w.hidden || !w.textContent ? "" : w.textContent + " ") + `Brak wymiarów skrzyni ${unk.join(" i ")} w źródłach, do rysunku i wieży użyto 60 × 60 × 50 cm.`; }
   const lpfKnown = r.pA.lpf || r.pB.lpf;
   $("phaseNote").textContent = Math.abs(r.X) < 0.05
@@ -285,6 +321,14 @@ function render(r) {
 }
 
 /* ============ WIDOK: rysunek układu (widok z boku, w skali) ============ */
+function spreadY(arr, key, gap) {            // rozsuwa nakładające się etykiety w pionie
+  const idx = arr.map((_, i) => i).sort((a, b) => arr[a][key] - arr[b][key]);
+  for (let pass = 0; pass < 3; pass++) for (let i = 1; i < idx.length; i++) {
+    const a = arr[idx[i - 1]], b = arr[idx[i]], d = gap - (b[key] - a[key]);
+    if (d > 0) { a[key] -= d / 2; b[key] += d / 2; }
+  }
+}
+let PL = null;
 function drawPlan(r) {
   const g = r.g, tower = g.tower, n = g.n;
   if (![g.dA, g.dB].every(v => Number.isFinite(v) && v > 0)) { $("stage").innerHTML = ""; return; }
@@ -300,6 +344,7 @@ function drawPlan(r) {
       cap: n > 1 ? `${n} szt. ${g.stack ? "w stosie" : "obok siebie"}` : "" },
     { k: "B", m: r.mB, col: "var(--b)", txt: "var(--b-text)", x: xB, depth: dpB, h: hB, zs: [g.hB], zc: g.hB, copies: 1, delay: r.delayB, d: g.dB, cap: "" }
   ];
+  if (r.useC) P.push({ k: "C", m: r.mC, col: "var(--c)", txt: "var(--c-text)", x: g.xC, depth: g.dims.C[2], h: g.dims.C[0], zs: [g.hC], zc: g.hC, copies: 1, delay: r.delayC, d: g.dC, cap: "" });
   let zTop = 0.2, zBot = -0.35;
   P.forEach(p => p.zs.forEach(z => { zTop = Math.max(zTop, z + p.h / 2); zBot = Math.min(zBot, z - p.h / 2); }));
   zBot = Math.min(zBot, -S.hr);
@@ -308,6 +353,7 @@ function drawPlan(r) {
   const ppm = Math.min((W - padL - refW - chipW - padR - gap - ghost) / xMax, 330 / (zTop - zBot), 240);
   const x0 = padL + refW, yOf = z => padT + (zTop - z) * ppm, yRef = yOf(0), yF = yOf(-S.hr);
   const H = yOf(zBot) + 34;
+  PL = { ppm, W };
   const f = v => v.toFixed(1);
   const chipX = W - padR - chipW;
   let s = `<svg viewBox="0 0 ${W} ${f(H)}" xmlns="http://www.w3.org/2000/svg">`;
@@ -339,8 +385,8 @@ function drawPlan(r) {
     }
     p.zs.forEach(z => {
       const y = yOf(z) - h / 2;
-      s += `<rect x="${f(L)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" rx="7" fill="url(#bx)" filter="url(#sh)" class="pl-box"/>`;
-      s += `<rect x="${f(L + 2.5)}" y="${f(y + 5)}" width="3" height="${f(Math.max(h - 10, 4))}" rx="1.5" fill="#fff" opacity=".30"/>`;
+      s += `<rect x="${f(L)}" y="${f(y)}" width="${f(w)}" height="${f(h)}" rx="7" fill="url(#bx)" filter="url(#sh)" class="pl-box pl-drag" data-drag="${p.k}" data-tip="${p.k}"/>`;
+      s += `<rect x="${f(L + 2.5)}" y="${f(y + 5)}" width="3" height="${f(Math.max(h - 10, 4))}" rx="1.5" fill="#fff" opacity=".30" class="pl-nohit"/>`;
       if (w >= 40 && h >= 20 && p.m.name.length * 4.9 <= w - 8) s += `<text x="${f(L + w / 2 + 2)}" y="${f(yOf(z) + 3.5)}" text-anchor="middle" class="pl-bt">${esc(p.m.name)}</text>`;
     });
     const topY = yOf(p.zs[p.zs.length - 1]) - h / 2;
@@ -348,7 +394,7 @@ function drawPlan(r) {
   });
   /* linie odległości */
   const mids = P.map(p => { const X = x0 + p.x * ppm, Y = yOf(p.zc); return { X, Y, mx: x0 + (X - x0) * .5, my: yRef + (Y - yRef) * .5 }; });
-  if (Math.abs(mids[0].my - mids[1].my) < 22) { const d = (22 - Math.abs(mids[0].my - mids[1].my)) / 2, up = mids[0].my <= mids[1].my ? 0 : 1; mids[up].my -= d; mids[1 - up].my += d; }
+  spreadY(mids, "my", 22);
   P.forEach((p, i) => {
     const m = mids[i], t = fmt(p.d) + " m", pw = 14 + t.length * 6.2, mx = Math.min(m.mx, m.X - 6 - pw / 2);
     s += `<line x1="${x0}" y1="${f(yRef)}" x2="${f(m.X)}" y2="${f(m.Y)}" stroke="${p.col}" class="pl-ln"/>`;
@@ -356,10 +402,10 @@ function drawPlan(r) {
     s += `<rect x="${f(mx - pw / 2)}" y="${f(m.my - 9)}" width="${f(pw)}" height="18" rx="9" class="pl-pill" stroke="${p.col}"/><text x="${f(mx)}" y="${f(m.my + 4)}" text-anchor="middle" class="pl-sm pl-b" fill="${p.txt}">${t}</text>`;
   });
   /* plakietki opóźnień */
-  const cy = P.map(p => yOf(p.zc) - (p.cap ? 6 : 0));
-  if (Math.abs(cy[0] - cy[1]) < 46) { const d = (46 - Math.abs(cy[0] - cy[1])) / 2, up = cy[0] <= cy[1] ? 0 : 1; cy[up] -= d; cy[1 - up] += d; }
+  const cy = P.map(p => ({ v: yOf(p.zc) - (p.cap ? 6 : 0) }));
+  spreadY(cy, "v", 46);
   P.forEach((p, i) => {
-    const y = cy[i] - 12, on = p.delay > 0, lab = on ? `+${fmt(p.delay)} ms` : "0 ms";
+    const y = cy[i].v - 12, on = p.delay > 0, lab = on ? `+${fmt(p.delay)} ms` : "0 ms";
     s += `<rect x="${chipX}" y="${f(y)}" width="${chipW}" height="24" rx="12" ${on ? `fill="${p.col}"` : ""} class="${on ? "pl-chip" : "pl-chip0"}"/>`;
     s += `<text x="${chipX + chipW / 2}" y="${f(y + 16)}" text-anchor="middle" class="pl-chipt ${on ? "on" + p.k : "off"}">${lab}</text>`;
     if (p.cap) s += `<text x="${chipX + chipW / 2}" y="${f(y + 38)}" text-anchor="middle" class="pl-t2 pl-xs">${esc(p.cap)}</text>`;
@@ -371,11 +417,10 @@ function drawPlan(r) {
   });
   s += `</svg>`;
   $("stage").innerHTML = s;
-  $("stageNote").textContent = "Widok z boku w skali, skrzynie mają prawdziwe wymiary. Linie kończą się w środku skrzyni lub grupy skrzyń (droga po skosie).";
+  $("stageNote").textContent = "Widok z boku w skali. Przeciągnij skrzynię palcem lub myszą, żeby zmienić odległość (i wysokość, gdy stoi osobno). Przytrzymaj skrzynię, żeby zobaczyć opis.";
   const row = p => {
-    const x = p.x, nm = (p.k === "A" && n > 1 ? n + "× " : "") + p.m.name;
-    return whyRow(who(p.k, nm), p.delay > 0 ? `+${fmt(p.delay)} ms` : "0 ms", p.delay > 0 ? p.k.toLowerCase() : "n",
-      `Po skosie ${fmt(p.d)} m · poziomo ${fmt(x)} m · środek ${fmt(p.zc + S.hr)} m nad podłogą`);
+    const nm = (p.k === "A" && n > 1 ? n + "× " : "") + p.m.name;
+    return `<div class="why tipRow" data-tip="${p.k}"><div class="top"><span class="t">${who(p.k, nm)}</span><span class="r ${p.delay > 0 ? p.k.toLowerCase() : "n"}">${p.delay > 0 ? `+${fmt(p.delay)} ms` : "0 ms"}</span></div></div>`;
   };
   $("legend").innerHTML = P.map(row).join("");
 }
@@ -385,13 +430,14 @@ function update(syncIn = true) {
   const r = compute(S);
   render(r);
   drawPlan(r);
+  renderSmaart();
   if (syncIn) syncInputs();
 }
 
 $("copy").addEventListener("click", async () => {
   const r = compute(S), ms = Math.max(r.delayA, r.delayB);
   const m = r.delayB > 0 ? r.mB : r.mA;
-  const text = `${m.name}: ${fmt(ms)} ms`;
+  const text = r.useC ? r.act.map(k => `${k} ${r["m" + k].name}: ${fmt(r["delay" + k])} ms`).join(" · ") : `${m.name}: ${fmt(ms)} ms`;
   const b = $("copy");
   try { await navigator.clipboard.writeText(text); b.textContent = "Skopiowano"; }
   catch (e) { b.textContent = text; }
@@ -400,7 +446,7 @@ $("copy").addEventListener("click", async () => {
 
 /* Karty */
 function showTab(name) {
-  ["calc", "plan", "db", "info"].forEach(t => {
+  ["calc", "plan", "sm", "db", "info"].forEach(t => {
     $("tab-" + t).hidden = t !== name;
     $("t-" + t).setAttribute("aria-selected", String(t === name));
   });
@@ -420,8 +466,122 @@ function modelHTML(m) {
 $("dbSubs").innerHTML = DB.subs.map(modelHTML).join("");
 $("dbTops").innerHTML = DB.tops.concat(DB.infoOnly).map(modelHTML).join("");
 
+
+/* ============ SMAART: zmierzone czasy dotarcia ============ */
+const SPK = ["A", "B", "C"];
+function smaartBuild() {
+  const chev2 = '<svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  $("smBody").innerHTML = SPK.map(k => `<div class="group sm-card" id="smc${k}">
+    <div class="row"><span class="k"><span class="badge ${k.toLowerCase()}">${k}</span><span id="smn${k}"></span></span><span class="v mono" id="smcalc${k}"></span></div>
+    <div class="row"><label class="k" for="smT${k}">Czas dotarcia (Delay Finder)</label><div class="num"><input id="smT${k}" inputmode="decimal" autocomplete="off" placeholder="ms"><span class="u">ms</span></div></div>
+    <div class="row"><label class="k" for="smH${k}">Koherencja</label><div class="num"><input id="smH${k}" inputmode="decimal" autocomplete="off" placeholder="%"><span class="u">%</span></div></div>
+    <div class="row"><label class="k" for="smP${k}">Polaryzacja</label><label class="pick"><select id="smP${k}"><option value="">nie sprawdzono</option><option value="+">zgodna (+)</option><option value="-">odwrócona (−)</option></select>${chev2}</label></div>
+    <div class="row block"><input class="txt" id="smN${k}" autocomplete="off" placeholder="Notatka: pozycja mikrofonu, filtr, uwagi"></div></div>`).join("");
+  SPK.forEach(k => {
+    const bind = (id, key, fix) => { const el = $(id); el.value = S.sm[k][key] || ""; el.addEventListener(fix ? "change" : "input", () => { S.sm[k][key] = el.value; save(); renderSmaart(); }); };
+    bind("smT" + k, "t"); bind("smH" + k, "h"); bind("smP" + k, "p", true); bind("smN" + k, "n");
+  });
+}
+function renderSmaart() {
+  if (!$("smBody").firstChild) return;
+  const r = compute(S);
+  SPK.forEach(k => {
+    const on = r.act.includes(k); $("smc" + k).hidden = !on;
+    if (on) { $("smn" + k).textContent = r["m" + k].name; $("smcalc" + k).textContent = "obliczone " + fmt(r["delay" + k]) + " ms"; }
+  });
+  const meas = r.act.filter(k => Number.isFinite(parse(S.sm[k].t || "")));
+  const out = $("smOut");
+  if (meas.length < 2) { out.innerHTML = whyRow("Brak porównania", "", "n", "Wpisz czas dotarcia co najmniej dwóch głośników. Każdy mierz osobno, przy opóźnieniu 0 ms w procesorze, z tym samym sygnałem odniesienia i tym samym mikrofonem."); return; }
+  const M = {}; meas.forEach(k => { M[k] = parse(S.sm[k].t); });
+  const Mm = Math.max(...meas.map(k => M[k]));
+  const fc = r.pA.lpf || r.pB.lpf || (r.useC && r.pC.lpf) || 100;
+  let html = "", copy = [];
+  meas.forEach(k => {
+    const md = Mm - M[k], calc = r["delay" + k], diff = md - calc, deg = 360 * fc * diff / 1000;
+    const status = Math.abs(diff) < 0.1 ? "zgodne z obliczeniem" : Math.abs(diff) < 0.5 ? "drobna różnica" : "duża różnica: sprawdź pomiar i odległości";
+    const coh = parse(S.sm[k].h || ""), warn = [];
+    if (S.sm[k].p === "-") warn.push("polaryzacja odwrócona");
+    if (Number.isFinite(coh) && coh < 80) warn.push(`koherencja ${fmt(coh, 0)} % (orientacyjnie za niska, pomiar niepewny)`);
+    copy.push(`${k} ${r["m" + k].name}: ${fmt(md)} ms`);
+    html += whyRow(who(k, r["m" + k].name), `${fmt(md)} ms`, md > 0 ? k.toLowerCase() : "n",
+      `Z pomiaru: ${fmt(md)} ms. Obliczone: ${fmt(calc)} ms. Różnica ${sgn(diff)} ms, czyli około ${sgn(deg, 0)}° przy ${fc} Hz. <b>${status}.</b>` + (warn.length ? ` Uwaga: ${warn.join(", ")}.` : "") + (S.sm[k].n ? ` Notatka: ${esc(S.sm[k].n)}` : ""));
+  });
+  if (meas.length < r.act.length) html += whyRow("Pomiar niepełny", "", "n", "Nie wszystkie aktywne głośniki mają zmierzony czas, więc „najpóźniejszy” liczy się tylko z tych, które wpisano.");
+  out.innerHTML = html;
+  $("smCopy").onclick = async () => { const b = $("smCopy"), t = copy.join(" · "); try { await navigator.clipboard.writeText(t); b.textContent = "Skopiowano"; } catch (e) { b.textContent = t; } setTimeout(() => { b.textContent = "Kopiuj opóźnienia z pomiaru"; }, 1600); };
+}
+smaartBuild();
+
+/* ============ Przeciąganie skrzyń i opisy po przytrzymaniu ============ */
+function tipFor(k) {
+  const r = compute(S), g = r.g;
+  if (!r["m" + k] || (k === "C" && !r.useC)) return "";
+  const m = r["m" + k], p = r["p" + k], dl = r["delay" + k];
+  const name = (k === "A" && g.n > 1 ? g.n + "× " : "") + m.name;
+  return `<b>${k} · ${esc(name)}</b><br>poziomo ${fmt(g["x" + k])} m · po skosie ${fmt(g["d" + k])} m<br>środek ${fmt(g["z" + k])} m nad podłogą<br>preset ${esc(p.label)}, czas przejścia ${r.custom ? "—" : fmt(p.L, 1) + " ms"}<br>opóźnienie <b>${fmt(dl)} ms</b>`;
+}
+const tipEl = document.createElement("div"); tipEl.id = "tip"; tipEl.hidden = true; document.body.appendChild(tipEl);
+let tipTimer = null, tipHide = null, drag = null;
+function hideTip() { clearTimeout(tipTimer); clearTimeout(tipHide); tipEl.hidden = true; }
+function showTip(el, key) {
+  const h = tipFor(key); if (!h) return;
+  tipEl.innerHTML = h; tipEl.hidden = false;
+  const b = el.getBoundingClientRect(), w = tipEl.offsetWidth, hh = tipEl.offsetHeight;
+  const left = Math.min(Math.max(8, b.left + b.width / 2 - w / 2), innerWidth - w - 8);
+  let top = b.top - hh - 12; if (top < 60) top = b.bottom + 12;
+  tipEl.style.left = left + "px"; tipEl.style.top = top + "px";
+}
+function attachTip(root) {
+  let sx = 0, sy = 0;
+  root.addEventListener("contextmenu", e => e.preventDefault());
+  root.addEventListener("pointerdown", e => {
+    const el = e.target.closest("[data-tip]"); if (!el) return;
+    sx = e.clientX; sy = e.clientY; hideTip();
+    tipTimer = setTimeout(() => showTip(el, el.dataset.tip), 450);
+  });
+  root.addEventListener("pointermove", e => {
+    if (e.pointerType === "mouse" && !drag && e.buttons === 0) return;
+    if (Math.hypot(e.clientX - sx, e.clientY - sy) > 8) clearTimeout(tipTimer);
+  });
+  ["pointerup", "pointercancel"].forEach(t => root.addEventListener(t, () => { clearTimeout(tipTimer); if (!tipEl.hidden) tipHide = setTimeout(hideTip, 1600); }));
+  root.addEventListener("pointerover", e => {            // myszka: opis po najechaniu
+    if (e.pointerType !== "mouse" || drag) return;
+    const el = e.target.closest("[data-tip]"); if (!el) return;
+    clearTimeout(tipTimer); tipTimer = setTimeout(() => showTip(el, el.dataset.tip), 400);
+  });
+  root.addEventListener("pointerout", e => { if (e.pointerType === "mouse" && !drag && e.buttons === 0) hideTip(); });
+}
+attachTip($("stage")); attachTip($("legend"));
+
+const stageEl = $("stage");
+const snap = v => Math.round(v / 0.05) * 0.05;
+stageEl.addEventListener("touchstart", e => { if (e.target.closest("[data-drag]")) e.preventDefault(); }, { passive: false });
+stageEl.addEventListener("pointerdown", e => {
+  const el = e.target.closest("[data-drag]"); if (!el || !PL) return;
+  const k = el.dataset.drag, tower = S.place === "tower";
+  const xf = k === "C" ? "xC" : (k === "A" || tower ? "x" : "xB");
+  const bf = k === "C" ? "bC" : (tower ? null : (k === "A" ? "bA" : "bB"));
+  const svg = stageEl.querySelector("svg"), sc = PL.W / svg.getBoundingClientRect().width;
+  drag = { id: e.pointerId, xf, bf, sc, x0: e.clientX, y0: e.clientY, lx: e.clientX, ly: e.clientY, moved: false, rx: S[xf], rb: bf ? S[bf] : 0 };
+  try { stageEl.setPointerCapture(e.pointerId); } catch (err) {}
+});
+stageEl.addEventListener("pointermove", e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (!drag.moved) {
+    if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 7) return;
+    drag.moved = true; hideTip(); drag.lx = e.clientX; drag.ly = e.clientY;
+  }
+  const dx = (e.clientX - drag.lx) * drag.sc / PL.ppm, dy = (e.clientY - drag.ly) * drag.sc / PL.ppm;
+  drag.lx = e.clientX; drag.ly = e.clientY;
+  drag.rx = Math.min(200, Math.max(0.05, drag.rx + dx)); S[drag.xf] = Math.round(snap(drag.rx) * 100) / 100;
+  if (drag.bf) { drag.rb = Math.min(10, Math.max(0, drag.rb - dy)); S[drag.bf] = Math.round(snap(drag.rb) * 100) / 100; }
+  update();
+});
+["pointerup", "pointercancel", "lostpointercapture"].forEach(t => stageEl.addEventListener(t, () => { drag = null; }));
+
 /* Start */
 fillSelect($("selA"), S.A);
 fillSelect($("selB"), S.B);
+fillSelect($("selC"), S.C);
 syncModels();
 update();

@@ -24,3 +24,7 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
 .pl-chipt.onA, .pl-chipt.onB, .pl-bl.onA, .pl-bl.onB { fill: #06121A; }
 .pl-ref { fill: var(--label-2); }
 .stage { background: var(--card); box-shadow: none; }
+
+#tileC.on { background: var(--c); }
+.tab { font-size: 13px; }
+.pl-chipt.onC, .pl-bl.onC { fill: #06121A; }

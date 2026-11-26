@@ -63,3 +63,26 @@
 
 .photo { display: grid; place-items: center; background: #FFFFFF; border-radius: 10px; padding: 8px; margin-bottom: 12px; }
 .photo img { max-width: 100%; max-height: 180px; height: auto; display: block; }
+
+/* v5: głośnik C, zakładka Smaart, przeciąganie, opisy po przytrzymaniu */
+:root { --c: #30C26B; --c-text: #5BDB8B; }
+.badge.c { background: var(--c); }
+.tabbar .in { grid-template-columns: repeat(5, 1fr); }
+.tiles.three { grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }
+.tiles.three .tile { padding: var(--s-3); }
+.tiles.three .tile .val { font-size: 25px; line-height: 32px; }
+.tiles.three .tile .val small { display: none; }
+.why .r.c { color: var(--c-text); }
+.pl-chipt.onC, .pl-bl.onC { fill: #06121A; }
+.pl-drag { cursor: grab; touch-action: none; }
+.pl-drag:active { cursor: grabbing; }
+.pl-nohit, .pl-bt { pointer-events: none; }
+#stage, #legend { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.tipRow { cursor: help; }
+#tip { position: fixed; z-index: 60; max-width: min(300px, calc(100vw - 16px)); padding: 10px 12px; border-radius: 12px; background: #0B0D10; color: var(--label);
+  border: .5px solid var(--sep); box-shadow: 0 8px 24px rgba(0,0,0,.45); font: 400 13px/19px var(--font); pointer-events: none; }
+#tip[hidden] { display: none; }
+input.txt { width: 100%; box-sizing: border-box; border: 0; border-radius: 8px; background: var(--fill); color: var(--label); font: 400 var(--t-sub)/20px var(--font); padding: 10px 12px; }
+.sm-card { margin-bottom: var(--s-3); }
+.sm-card[hidden] { display: none; }
+.sm-card .row .k { max-width: 62%; }
