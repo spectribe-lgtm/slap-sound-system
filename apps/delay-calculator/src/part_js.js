@@ -465,7 +465,7 @@ document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () =>
 
 /* ============ SPL: pomiar poziomu z mikrofonu telefonu, ważenie A/C/Z (filtry IIR), Fast/Slow, Leq/Lmax/Lmin/Lpeak ============ */
 const SPLK = "seeburg-spl-v1";
-let SP = { w: "A", t: "F", cal: 100 };
+let SP = { w: "A", t: "F", cal: 100, dev: "" };
 try { Object.assign(SP, JSON.parse(localStorage.getItem(SPLK) || "{}")); } catch (e) {}
 const splSave = () => { try { localStorage.setItem(SPLK, JSON.stringify(SP)); } catch (e) {} };
 let splCtx = null, splStream = null, splNode = null, splAn = null, splOn = false, splRaf = null;
@@ -508,15 +508,47 @@ function splProcess(buf) {
   if (spM.tSum > 1) { spM.max = Math.max(spM.max, db); spM.min = Math.min(spM.min, db); }
   spM.cur = db; spM.hist.push(db); if (spM.hist.length > 600) spM.hist.shift();
 }
-async function splStart() {
+function splMsg(t, bad) { const e = $("splStat"); if (e) { e.textContent = t; e.style.color = bad ? "#ff6b5b" : ""; } }
+function splErr(e) {
+  const embedded = window.self !== window.top, nm = e && e.name || "";
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return embedded ? "Ta strona działa w podglądzie osadzonym, który nie ma dostępu do mikrofonu. Otwórz aplikację bezpośrednio: spectribe-lgtm.github.io/slap-sound-system (Safari, potem Udostępnij → Do ekranu początkowego)." : "Przeglądarka nie udostępnia mikrofonu. Potrzebna jest strona po HTTPS (Safari, Chrome).";
+  if (nm === "NotAllowedError" || nm === "SecurityError") return embedded ? "Mikrofon zablokowany. Podgląd osadzony nie może prosić o zgodę. Otwórz aplikację bezpośrednio: spectribe-lgtm.github.io/slap-sound-system." : "Brak zgody na mikrofon. iPhone: Ustawienia → Safari → Mikrofon → Pytaj lub Zezwalaj (albo ikona aA w pasku adresu → Ustawienia strony → Mikrofon). Potem dotknij „Zezwól na mikrofon” ponownie.";
+  if (nm === "NotFoundError" || nm === "OverconstrainedError") return "Nie znaleziono wybranego mikrofonu. Wybierz inne wejście z listy albo odśwież listę.";
+  if (nm === "NotReadableError") return "Mikrofon zajęty przez inną aplikację. Zamknij ją i spróbuj ponownie.";
+  return "Nie udało się uruchomić mikrofonu (" + (nm || "błąd") + ").";
+}
+async function splDevices() {                                         // lista wejść audio z systemu (etykiety dostępne dopiero po zgodzie)
+  const sel = $("splDev"); if (!sel || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+  const list = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "audioinput");
+  sel.innerHTML = ""; const d0 = document.createElement("option"); d0.value = ""; d0.textContent = "Domyślny mikrofon systemu"; sel.appendChild(d0);
+  list.forEach((d, i) => { const o = document.createElement("option"); o.value = d.deviceId; o.textContent = d.label || "Wejście " + (i + 1); sel.appendChild(o); });
+  sel.value = list.some(d => d.deviceId === SP.dev) ? SP.dev : ""; sel.hidden = false; $("splDevRow").hidden = false;
+}
+async function splAsk() {                                             // prośba o zgodę na mikrofon systemowy
   try {
-    splStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
-  } catch (e) { $("splNote").textContent = "Brak dostępu do mikrofonu (" + (e.name || "błąd") + "). Zezwól na mikrofon w ustawieniach przeglądarki. Pomiar wymaga strony po HTTPS, uruchomionej jako aplikacja lub w Safari, nie w podglądzie osadzonym."; return; }
-  const AC = window.AudioContext || window.webkitAudioContext; splCtx = new AC(); await splCtx.resume();
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true }); s.getTracks().forEach(t => t.stop());
+    await splDevices(); splMsg("Zgoda na mikrofon udzielona. Wybierz wejście z listy i włącz pomiar.");
+    $("splPerm").textContent = "Odśwież listę mikrofonów"; return true;
+  } catch (e) { splMsg(splErr(e), true); return false; }
+}
+async function splStart() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  try { splCtx = new AC(); splCtx.resume(); } catch (e) { splMsg("Ta przeglądarka nie obsługuje Web Audio.", true); return; }           // utworzone w geście użytkownika (wymóg iOS)
+  const audio = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 };
+  if (SP.dev) audio.deviceId = { exact: SP.dev };
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("brak");
+    splStream = await navigator.mediaDevices.getUserMedia({ audio });
+  } catch (e) {
+    if (SP.dev && e && (e.name === "OverconstrainedError" || e.name === "NotFoundError")) { SP.dev = ""; splSave(); try { audio.deviceId = undefined; delete audio.deviceId; splStream = await navigator.mediaDevices.getUserMedia({ audio }); } catch (e2) { splMsg(splErr(e2), true); try { splCtx.close(); } catch (x) {} splCtx = null; return; } }
+    else { splMsg(splErr(e), true); try { splCtx.close(); } catch (x) {} splCtx = null; return; }
+  }
+  await splCtx.resume(); await splDevices().catch(() => {});
   spM.fs = splCtx.sampleRate; spFilt = splFilters(spM.fs, SP.w); spM.msF = spM.msS = 0;
   const src = splCtx.createMediaStreamSource(splStream); splAn = splCtx.createAnalyser(); splAn.fftSize = 8192; splAn.smoothingTimeConstant = 0.6; src.connect(splAn);
   splNode = splCtx.createScriptProcessor(2048, 1, 1); splNode.onaudioprocess = e => splProcess(e.inputBuffer.getChannelData(0));
   src.connect(splNode); const mute = splCtx.createGain(); mute.gain.value = 0; splNode.connect(mute); mute.connect(splCtx.destination);
+  const tr = splStream.getAudioTracks()[0]; splMsg("Mikrofon: " + (tr && tr.label ? tr.label : "domyślny") + " · " + Math.round(spM.fs / 100) / 10 + " kHz");
   splOn = true; $("splGo").textContent = "Wyłącz pomiar"; splLoop();
 }
 function splStop() {
@@ -562,6 +594,9 @@ document.querySelectorAll('#segW input').forEach(i => i.addEventListener("change
 document.querySelectorAll('#segT input').forEach(i => i.addEventListener("change", () => { SP.t = i.value; spM.t = SP.t; splSave(); splUI(); }));
 spM.t = SP.t;
 $("splGo").addEventListener("click", () => { splOn ? (splStop(), splDraw()) : splStart(); });
+$("splPerm").addEventListener("click", () => { splAsk(); });
+$("splDev").addEventListener("change", e => { SP.dev = e.target.value; splSave(); if (splOn) { splStop(); splStart(); } });
+(function () { try { if (navigator.permissions && navigator.permissions.query) navigator.permissions.query({ name: "microphone" }).then(p => { if (p.state === "granted") splDevices().catch(() => {}); p.onchange = () => { if (p.state === "granted") splDevices().catch(() => {}); }; }).catch(() => {}); } catch (e) {} })();
 $("splReset").addEventListener("click", () => { splReset(); splDraw(); });
 $("splCal").addEventListener("change", e => { const v = parseFloat(String(e.target.value).replace(",", ".")); if (isFinite(v)) { SP.cal = v; splSave(); splReset(); splUI(); } });
 $("splSet").addEventListener("click", () => {
@@ -743,20 +778,22 @@ function fsRoom() {
   if (q.w2) out.push([0, q.x0]); if (q.w3) out.push([0, q.x1]); if (q.w1) out.push([1, q.y1]); if (q.w4) out.push([1, q.y2]); if (q.ce) out.push([2, q.hc]);
   return out;
 }
+function fsCross(X, Y) { const q = S.fs.room; return (q.w2 && X < q.x0 ? 1 : 0) + (q.w3 && X > q.x1 ? 1 : 0) + (q.w1 && Y < q.y1 ? 1 : 0) + (q.w4 && Y > q.y2 ? 1 : 0); }
+function fsTx() { return Math.sqrt(Math.max(0, 1 - S.fs.room.R * S.fs.room.R)); }
 function fsOut(X, Y) { const q = S.fs.room; return (q.w2 && X < q.x0) || (q.w3 && X > q.x1) || (q.w1 && Y < q.y1) || (q.w4 && Y > q.y2); }
 /* źródła punktowe + ich obrazy w ścianach/suficie (metoda źródeł-obrazów, rząd 2, jednakowy współczynnik odbicia R) */
 function fsEff() {
   const { src, c } = fsSources(), dm = dimsOf(modelOf(S.fs.A)), zs = dm[0] / 2, surf = fsRoom(), R = S.fs.room.R, out = [];
   src.forEach(s => {
     let cur = [{ p: [s.x, s.y, zs], a: s.pol, last: -1 }];
-    out.push(...cur.map(o => ({ x: o.p[0], y: o.p[1], z: o.p[2], a: o.a, t: s.t })));
+    out.push(...cur.map(o => ({ x: o.p[0], y: o.p[1], z: o.p[2], a: o.a, t: s.t, o: 0 })));
     for (let ord = 0; ord < 2 && surf.length; ord++) {
       const nxt = [];
       cur.forEach(o => surf.forEach((sf, si) => {
         if (si === o.last) return;
         const p = o.p.slice(); p[sf[0]] = 2 * sf[1] - p[sf[0]]; nxt.push({ p, a: o.a * R, last: si });
       }));
-      out.push(...nxt.map(o => ({ x: o.p[0], y: o.p[1], z: o.p[2], a: o.a, t: s.t })));
+      out.push(...nxt.map(o => ({ x: o.p[0], y: o.p[1], z: o.p[2], a: o.a, t: s.t, o: ord + 1 })));
       cur = nxt;
     }
   });
@@ -767,16 +804,17 @@ let fsSim = { t0: 0 }, fsDragging = false;
 function fsCenter() { const s = fsSources().src; return { x: s.reduce((a, q) => a + q.x, 0) / s.length, y: s.reduce((a, q) => a + q.y, 0) / s.length }; }
 function fsCompute() {
   const { eff, src, c } = fsEff(), f = FSF[S.fs.fi], k = 2 * Math.PI * f / c, w = 2 * Math.PI * f, view = S.fs.view, M = eff.length;
-  const ex = new Float32Array(M), ey = new Float32Array(M), ez = new Float32Array(M), ea = new Float32Array(M), et = new Float32Array(M);
-  eff.forEach((e, i) => { ex[i] = e.x; ey[i] = e.y; ez[i] = e.z; ea[i] = e.a; et[i] = e.t / 1000; });
+  const ex = new Float32Array(M), ey = new Float32Array(M), ez = new Float32Array(M), ea = new Float32Array(M), et = new Float32Array(M), eo = new Uint8Array(M), TX = fsTx();
+  eff.forEach((e, i) => { ex[i] = e.x; ey[i] = e.y; ez[i] = e.z; ea[i] = e.a; et[i] = e.t / 1000; eo[i] = e.o; });
   if (view === "spl") {                                              // pole ustalone (stacjonarne), siatka GN x GN
     const re = new Float32Array(GN * GN), im = new Float32Array(GN * GN);
     for (let j = 0; j < GN; j++) {
       const Y = FSY[1] - (FSY[1] - FSY[0]) * (j + .5) / GN;
       for (let i = 0; i < GN; i++) {
-        const X = FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / GN; let a = 0, b = 0;
+        const X = FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / GN; let a = 0, b = 0; const nc = fsCross(X, Y), tf = nc ? Math.pow(TX, nc) : 1;
         for (let m = 0; m < M; m++) {
-          const dx = X - ex[m], dy = Y - ey[m], dz = FSZR - ez[m], r = Math.max(0.3, Math.sqrt(dx * dx + dy * dy + dz * dz)), ph = -k * r - w * et[m], g = ea[m] / r;
+          if (nc && eo[m] > 0) continue;
+          const dx = X - ex[m], dy = Y - ey[m], dz = FSZR - ez[m], r = Math.max(0.3, Math.sqrt(dx * dx + dy * dy + dz * dz)), ph = -k * r - w * et[m], g = ea[m] / r * tf;
           a += g * Math.cos(ph); b += g * Math.sin(ph);
         }
         re[j * GN + i] = a; im[j * GN + i] = b;
@@ -792,13 +830,13 @@ function fsCompute() {
   }
   if (fsDragging && fsField && fsField.mode === "wave") { fsField.src = src; return; }   // podczas przeciągania nie przeliczaj tablic
   /* fala w czasie: dla każdej komórki i każdego źródła-obrazu zapamiętaj czas dojścia i zespoloną amplitudę, klatka tylko sumuje te, które już dotarły */
-  const three = view === "3d", hc = S.fs.room.ce ? S.fs.room.hc : 10;
+  const three = view === "3d" || view === "side", hc = S.fs.room.ce ? S.fs.room.hc : 10;
   const build = (n, pos) => {
     const arr = new Float32Array(n * M), cr = new Float32Array(n * M), ci = new Float32Array(n * M), amp = new Float32Array(n); let maxArr = 0;
     for (let p = 0; p < n; p++) {
-      const [X, Y, Z] = pos(p); let a = 0, b = 0;
+      const [X, Y, Z] = pos(p); let a = 0, b = 0; const nc = fsCross(X, Y), tf = nc ? Math.pow(TX, nc) : 1;
       for (let m = 0; m < M; m++) {
-        const dx = X - ex[m], dy = Y - ey[m], dz = Z - ez[m], r = Math.max(0.3, Math.sqrt(dx * dx + dy * dy + dz * dz)), ph = -k * r - w * et[m], g = ea[m] / r, q = p * M + m;
+        const dx = X - ex[m], dy = Y - ey[m], dz = Z - ez[m], r = Math.max(0.3, Math.sqrt(dx * dx + dy * dy + dz * dz)), ph = -k * r - w * et[m], g = (nc && eo[m] > 0 ? 0 : ea[m] / r * tf), q = p * M + m;
         cr[q] = g * Math.cos(ph); ci[q] = g * Math.sin(ph); arr[q] = r / c + et[m]; a += cr[q]; b += ci[q]; if (arr[q] > maxArr) maxArr = arr[q];
       }
       amp[p] = Math.hypot(a, b);
@@ -837,6 +875,7 @@ function cmap(t) {
 const fsOff = document.createElement("canvas"); fsOff.width = fsOff.height = GN;
 function fsDraw(tms) {
   if (S.fs.view === "3d") return fsDraw3(tms);
+  if (S.fs.view === "side") return fsDrawSide(tms);
   const cv = $("fsCv"); if (!cv || !fsField) return;
   const ctx = cv.getContext("2d"), F = fsField, wave = S.fs.view === "wave";
   if ((wave && F.mode !== "wave") || (!wave && F.mode !== "spl")) return;
@@ -852,7 +891,7 @@ function fsDraw(tms) {
         const p = j * GN + i, X = FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / GN;
         const lv = 20 * Math.log10(Math.hypot(F.re[p], F.im[p]) / F.mx + 1e-9);            // 0 dB = maksimum dalej niż 3 m od subów
         const q = Math.round(lv / 3) * 3;                                                  // pasma co 3 dB jak w S.A.D.
-        let col = cmap((q + 36) / 36); if (fsOut(X, Y)) col = [col[0] * .25, col[1] * .25, col[2] * .25];
+        const col = cmap((q + 36) / 36);
         const q4 = p * 4; img.data[q4] = col[0]; img.data[q4 + 1] = col[1]; img.data[q4 + 2] = col[2]; img.data[q4 + 3] = 255;
       }
     }
@@ -962,14 +1001,44 @@ function paintTex(cv, T, N, Mrows, ts, pos) {
     const [X, Y, Z] = pos(p % N, (p / N) | 0), rr = Math.max(1, Math.hypot(X, Y + 2, Z - 0.5));
     const v = vals[p] * rr / (F.mx * 12), m = Math.min(1, Math.abs(v) ** 0.7);
     let col = v >= 0 ? [20 + 215 * m, 22 + 50 * m, 28 + 20 * m] : [20 + 10 * m, 22 + 110 * m, 28 + 215 * m];
-    if (Z > zmax || fsOut(X, Y)) col = col.map(x => x * .3);
+    if (Z > zmax) col = col.map(x => x * .3);
     const q4 = p * 4; img.data[q4] = col[0]; img.data[q4 + 1] = col[1]; img.data[q4 + 2] = col[2]; img.data[q4 + 3] = 255;
   }
   o.putImageData(img, 0, 0);
 }
+
+let fsSideInfo = null;
+function fsDrawSide(tms) {
+  const cv = $("fs3"), F = fsField; if (!cv || !F || F.mode !== "wave" || !F.V) return;
+  const ppm = cv.width / (FSY[1] - FSY[0]), hh = Math.round(Math.max(F.hc, 6) * ppm + 74); if (cv.height !== hh) cv.height = hh;
+  const ctx = cv.getContext("2d"), W = cv.width, H = cv.height, rm = S.fs.room, base = H - 26, ts = fsTime(tms);
+  paintTex(texV, F.V, F.N, F.VZ, ts, (i, j) => [F.xc, FSY[0] + (FSY[1] - FSY[0]) * (i + .5) / F.N, F.hc * (1 - (j + .5) / F.VZ)]);
+  ctx.fillStyle = "#0B0D10"; ctx.fillRect(0, 0, W, H);
+  const px = y => (y - FSY[0]) * ppm, pz = z => base - z * ppm;
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(texV, 0, pz(F.hc), W, F.hc * ppm);
+  ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.font = "16px -apple-system, sans-serif"; ctx.lineWidth = 1;
+  for (let y = -10; y <= 30; y += 10) { ctx.beginPath(); ctx.moveTo(px(y), 0); ctx.lineTo(px(y), base); ctx.stroke(); ctx.fillText(y + " m", px(y) + 4, base + 18); }
+  ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, base); ctx.lineTo(W, base); ctx.stroke();
+  ctx.setLineDash([6, 6]); ctx.strokeStyle = "rgba(255,255,255,.45)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, pz(FSZR)); ctx.lineTo(W, pz(FSZR)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fillText("ucho 1,6 m", W - 90, pz(FSZR) - 4);
+  const dm = dimsOf(modelOf(S.fs.A)), bd = dm[2], bh = dm[0], cc = fsCenter(), WC = ["#FFB84D", "#4DD0E1", "#B58CFF", "#7BE07B"], hs = [];
+  F.src.forEach(s => { ctx.fillStyle = s.pol < 0 ? "#a04040" : "#6b7078"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.fillRect(px(s.y - bd / 2), pz(bh), bd * ppm, bh * ppm); ctx.strokeRect(px(s.y - bd / 2), pz(bh), bd * ppm, bh * ppm); });
+  const draws = (key, y, lab, col) => { ctx.strokeStyle = col; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(px(y), 0); ctx.lineTo(px(y), base); ctx.stroke();
+    const hx = px(y), hy = 34; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(hx, hy, 15, 0, 7); ctx.fill(); ctx.fillStyle = "#111"; ctx.font = "bold 18px -apple-system, sans-serif"; ctx.textAlign = "center"; ctx.fillText(lab, hx, hy + 6);
+    ctx.fillStyle = col; ctx.fillText(fmt(Math.abs(y - cc.y), 1) + " m", hx, hy + 32); ctx.textAlign = "start"; hs.push({ key, x: hx, y: hy }); };
+  if (rm.w1) draws("w1", rm.y1, "1", WC[0]); if (rm.w4) draws("w4", rm.y2, "4", WC[3]);
+  if (rm.ce) { const yy = pz(rm.hc); ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke();
+    const hx = W - 40; ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(hx, yy, 15, 0, 7); ctx.fill(); ctx.fillStyle = "#111"; ctx.font = "bold 18px -apple-system, sans-serif"; ctx.textAlign = "center"; ctx.fillText("S", hx, yy + 6);
+    ctx.fillStyle = "#fff"; ctx.fillText(fmt(rm.hc, 1) + " m", hx - 52, yy + 6); ctx.textAlign = "start"; hs.push({ key: "ce", x: hx, y: yy }); }
+  ctx.strokeStyle = "#E8D44D"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px(cc.y), base - 8); ctx.lineTo(px(cc.y), base + 8); ctx.stroke();
+  ctx.fillStyle = "rgba(255,255,255,.75)"; ctx.font = "16px -apple-system, sans-serif"; ctx.fillText("publiczność →", W - 140, 20);
+  ctx.fillText("t = " + fmt(ts * 1000, 0) + " ms (zwolnione) · przekrój pionowy przez środek układu", 8, 20);
+  fsSideInfo = { ppm, base, hs };
+}
 let fsCamInfo = null;
 function fsDraw3(tms) {
   const cv = $("fs3"), F = fsField; if (!cv || !F || F.mode !== "wave" || !F.V) return;
+  if (cv.height !== 560) cv.height = 560;
   const ctx = cv.getContext("2d"), W = cv.width, H = cv.height, rm = S.fs.room, N = F.N, VZ = F.VZ, ts = fsTime(tms);
   paintTex(texH, F.H, N, N, ts, (i, j) => [FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / N, FSY[1] - (FSY[1] - FSY[0]) * (j + .5) / N, FSZR]);
   paintTex(texV, F.V, N, VZ, ts, (i, j) => [F.xc, FSY[0] + (FSY[1] - FSY[0]) * (i + .5) / N, F.hc * (1 - (j + .5) / VZ)]);
@@ -1047,6 +1116,10 @@ function fsClampWall(key, x, y) {
   const cpos = e => { const rc = c3.getBoundingClientRect(), s = c3.width / rc.width; return [(e.clientX - rc.left) * s, (e.clientY - rc.top) * s]; };
   c3.addEventListener("pointerdown", e => {
     c3.setPointerCapture(e.pointerId); const [X, Y] = cpos(e); fsPtrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if (S.fs.view === "side" && fsSideInfo) {
+      let best = null, bd = 34; fsSideInfo.hs.forEach(h => { const dd = Math.hypot(h.x - X, h.y - Y); if (dd < bd) { bd = dd; best = h; } });
+      if (best) { fsDragH = { key: best.key, side: true }; fsDragging = true; } return;
+    }
     if (fsPtrs.size === 1 && fsCamInfo) {
       let best = null, bd = 34; fsCamInfo.hs.forEach(h => { const dd = Math.hypot(h.x - X, h.y - Y); if (dd < bd) { bd = dd; best = h; } });
       if (best) { fsDragH = { key: best.key, Y0: Y, hc0: S.fs.room.hc, d: best.d }; fsDragging = true; return; }
@@ -1055,6 +1128,13 @@ function fsClampWall(key, x, y) {
   });
   c3.addEventListener("pointermove", e => {
     const p = fsPtrs.get(e.pointerId); if (!p) return;
+    if (fsDragH && fsDragH.side && fsSideInfo) {
+      const [X, Y] = cpos(e), rm = S.fs.room;
+      if (fsDragH.key === "ce") rm.hc = Math.round(Math.max(2.5, Math.min(20, (fsSideInfo.base - Y) / fsSideInfo.ppm)) * 10) / 10;
+      else fsClampWall(fsDragH.key, 0, FSY[0] + X / fsSideInfo.ppm);
+      redo(); return;
+    }
+    if (S.fs.view === "side") return;
     if (fsDragH && fsCamInfo) {
       const [X, Y] = cpos(e), ci = fsCamInfo, rm = S.fs.room;
       if (fsDragH.key === "ce") { rm.hc = Math.round(Math.max(2.5, Math.min(20, fsDragH.hc0 - (Y - fsDragH.Y0) * fsDragH.d / (ci.FOC * Math.max(.3, Math.cos(cam.pit))))) * 10) / 10; }
@@ -1085,13 +1165,44 @@ function fsRoomUI() {
   const cc = fsCenter(), d = v => fmt(Math.abs(v), 1) + " m";
   const pos = [rm.w1 ? `1: ${d(rm.y1 - cc.y)} za środkiem subów` : "", rm.w2 ? `2: ${d(rm.x0 - cc.x)} w lewo` : "", rm.w3 ? `3: ${d(rm.x1 - cc.x)} w prawo` : "", rm.w4 ? `4: ${d(rm.y2 - cc.y)} przed środkiem subów` : ""].filter(Boolean);
   let dim = ""; if (rm.w2 && rm.w3) dim += ` Szerokość sali ${fmt(rm.x1 - rm.x0, 1)} m.`; if (rm.w1 && rm.w4) dim += ` Długość sali ${fmt(rm.y2 - rm.y1, 1)} m.`; if (rm.ce) dim += ` Sufit ${fmt(rm.hc, 1)} m.`;
-  $("fsWallPos").textContent = (pos.length ? "Odległość od środka układu subów: " + pos.join(" · ") + "." : "Wszystkie ściany wyłączone: pole swobodne.") + dim + " Przeciągaj ściany (kółka z numerami) na mapie 2D lub w 3D, sufit (kółko S) w 3D.";
+  $("fsWallPos").textContent = (pos.length ? "Odległość od środka układu subów: " + pos.join(" · ") + "." : "Wszystkie ściany wyłączone: pole swobodne.") + dim + " Przeciągaj ściany (kółka z numerami) na mapie 2D, w 3D lub w widoku z boku, sufit (kółko S) w 3D lub z boku. Poza ścianą słychać tylko dźwięk przechodzący przez nią (osłabiony), odbicia zostają w środku.";
   document.querySelectorAll('#segSpd input').forEach(i => { i.checked = i.value === (f.spd || "m"); }); $("grpSpd").hidden = f.view === "spl";
-  $("fsStage2").hidden = f.view === "3d"; $("fs3Stage").hidden = f.view !== "3d";
+  $("fsStage2").hidden = f.view === "3d" || f.view === "side"; $("fs3Stage").hidden = !(f.view === "3d" || f.view === "side");
+}
+
+function fsLayoutSide() {
+  const cv = $("fsLay2"); if (!cv) return;
+  const ctx = cv.getContext("2d"), W = cv.width, H = cv.height, { src } = fsSources(), m = modelOf(S.fs.A), dm = dimsOf(m), bd = dm[2], bh = dm[0], rm = S.fs.room, cc = fsCenter();
+  let y0 = Math.min(...src.map(s => s.y - bd / 2)), y1 = Math.max(...src.map(s => s.y + bd / 2));
+  const near = y => y >= y0 - 5 && y <= y1 + 5;                          // widok skupiony na subach, dalekie ściany/sufit tylko jako strzałki przy brzegu
+  if (rm.w1 && near(rm.y1)) y0 = Math.min(y0, rm.y1); if (rm.w4 && near(rm.y2)) y1 = Math.max(y1, rm.y2);
+  const ceilNear = rm.ce && rm.hc <= 6, zhi = Math.max(bh, ceilNear ? rm.hc : 0, FSZR) + 0.4;
+  const ppm = Math.min(300, (W - 90) / (y1 - y0 + 1.2), (H - 100) / zhi), cx = (y0 + y1) / 2, px = y => W / 2 + (y - cx) * ppm, base = H - 50, pz = z => base - z * ppm;
+  const WC = ["#FFB84D", "#4DD0E1", "#B58CFF", "#7BE07B"];
+  ctx.fillStyle = "#0B0D10"; ctx.fillRect(0, 0, W, H); ctx.font = "16px -apple-system, sans-serif";
+  ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, base); ctx.lineTo(W, base); ctx.stroke();
+  ctx.setLineDash([6, 6]); ctx.strokeStyle = "rgba(255,255,255,.4)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, pz(FSZR)); ctx.lineTo(W, pz(FSZR)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.textAlign = "left"; ctx.fillText("ucho 1,6 m", 8, pz(FSZR) - 5);
+  [["w1", rm.y1, "1", WC[0]], ["w4", rm.y2, "4", WC[3]]].forEach(([k, y, lab, col]) => {
+    if (!rm[k]) return; const d = fmt(Math.abs(y - cc.y), 1) + " m od środka", inView = px(y) > 6 && px(y) < W - 6; ctx.fillStyle = col; ctx.strokeStyle = col;
+    if (inView) { ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(px(y), 22); ctx.lineTo(px(y), base); ctx.stroke(); ctx.textAlign = "center"; ctx.fillText(lab + ": " + d, px(y), 16); }
+    else { ctx.textAlign = y > cc.y ? "right" : "left"; ctx.fillText(y > cc.y ? "ściana " + lab + ": " + d + " →" : "← ściana " + lab + ": " + d, y > cc.y ? W - 8 : 8, 38); } });
+  if (rm.ce) { ctx.fillStyle = "#fff"; ctx.strokeStyle = "#fff"; ctx.textAlign = "right";
+    if (ceilNear) { ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, pz(rm.hc)); ctx.lineTo(W, pz(rm.hc)); ctx.stroke(); ctx.fillText("sufit " + fmt(rm.hc, 1) + " m", W - 8, pz(rm.hc) - 6); }
+    else ctx.fillText("sufit " + fmt(rm.hc, 1) + " m nad podłogą ↑", W - 8, 60); }
+  ctx.textAlign = "center";
+  src.forEach((s, i) => { const w = bd * ppm, h = bh * ppm, X = px(s.y) - w / 2;
+    ctx.fillStyle = s.pol < 0 ? "#7d2f2f" : "#3a3d44"; ctx.strokeStyle = "#4C8DFF"; ctx.lineWidth = 2.5; ctx.fillRect(X, pz(bh), w, h); ctx.strokeRect(X, pz(bh), w, h);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 18px -apple-system, sans-serif"; ctx.fillText(String(i + 1), px(s.y), pz(bh / 2) + 6);
+    if (s.t > 0.005) { ctx.fillStyle = "#E8D44D"; ctx.font = "15px -apple-system, sans-serif"; ctx.fillText(fmt(s.t, 1) + " ms", px(s.y), pz(bh) - 8 - ((i % 2) * 16)); } });
+  ctx.font = "16px -apple-system, sans-serif"; ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.textAlign = "left";
+  ctx.fillText(`widok z boku: skrzynia ${fmt(bh * 100, 0)} cm wys. × ${fmt(bd * 100, 0)} cm głęb.`, 8, H - 26);
+  ctx.fillText(S.fs.type === "line" || S.fs.type === "arc" ? src.length + " szt. obok siebie, zasłaniają się" : "", 8, H - 6);
+  ctx.textAlign = "right"; ctx.fillText("publiczność →", W - 8, H - 6); ctx.textAlign = "start";
 }
 function fsLoop(t) {
   fsRaf = null;
-  if (S.mode !== "fs" || (S.fs.view !== "wave" && S.fs.view !== "3d") || $("tab-calc").hidden || document.hidden) return;
+  if (S.mode !== "fs" || (S.fs.view !== "wave" && S.fs.view !== "3d" && S.fs.view !== "side") || $("tab-calc").hidden || document.hidden) return;
   fsDraw(t); fsRaf = requestAnimationFrame(fsLoop);
 }
 function fsCalc() {
@@ -1134,7 +1245,7 @@ function fsRender() {
   const w = $("fwarn"); const est = q.act.filter(k => q.P[k].est);
   w.hidden = !est.length; if (est.length) w.textContent = `Preset ${est.join(" i ")} nie ma wpisu w tabeli Time-Alignment Seeburga, przyjęto czas z presetu HP. Sprawdź pomiarem.`;
   /* mapa */
-  fsRoomUI(); fsCompute(); fsDraw(performance.now()); fsLayout();
+  fsRoomUI(); fsCompute(); fsDraw(performance.now()); fsLayout(); fsLayoutSide();
   $("fsMapNote").textContent = f.view === "3d"
     ? "Obracaj: przeciągnij palcem lub myszą. Zoom: dwa palce lub kółko. Uchwyty ścian i sufitu przeciągasz bezpośrednio. Fala rusza z subów w zwolnionym tempie, odbicia dołączają się dopiero gdy dotrą do danego punktu (metoda źródeł-obrazów, rząd 1 i 2, jednakowe R, ściany idealnie płaskie, bez modów i bez odbicia od podłogi). Barwy wyrównane do odległości, żeby było widać falę daleko. Model poglądowy, nie zastępuje pomiaru."
     : f.view === "wave"
@@ -1149,7 +1260,7 @@ function fsRender() {
     `Do wpisania w procesorze: grupa ${fmt(q.dl.A)} ms + układ ${fmt(s.t)} ms${s.pol < 0 ? ", polaryzacja odwrócona" : ""}. Pozycja: ${fmt(s.x)} m w bok, ${fmt(s.y)} m w głąb (0 = front suba najbliższego publiczności).`); });
   const d = f.d, sum = whyRow("Odstęp subów", `${fmt(d)} m`, "n", `To ${fmt(d / lam, 2)} długości fali przy ${fq} Hz (λ = ${fmt(lam)} m, c = ${fmt(c, 1)} m/s). ${quarter ? "Dla end-fire i gradientu optimum to ¼ λ." : "Dla układów poziomych typowo ½ λ."}`, "final");
   $("fsOut").innerHTML = rowsG.join("") + sum + rowsS.join("");
-  if (!fsRaf && (f.view === "wave" || f.view === "3d")) fsRaf = requestAnimationFrame(fsLoop);
+  if (!fsRaf && (f.view === "wave" || f.view === "3d" || f.view === "side")) fsRaf = requestAnimationFrame(fsLoop);
 }
 document.querySelectorAll('#segMode input').forEach(i => i.addEventListener("change", () => { S.mode = i.value; update(); }));
 document.querySelectorAll('#segFSType input').forEach(i => i.addEventListener("change", () => { S.fs.type = i.value; if (i.value === "grad") S.fs.n = 2; update(); }));

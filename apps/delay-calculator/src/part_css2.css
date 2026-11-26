@@ -113,3 +113,5 @@ input[type=range] { accent-color: var(--accent); height: 32px; }
 
 #fs3 { display: block; width: 100%; height: auto; border-radius: 12px; background: #0B0D10; cursor: grab; }
 #fsCv { touch-action: pan-y; }
+
+#fsLay2 { display: block; width: 100%; height: auto; border-radius: 12px; background: #0B0D10; }

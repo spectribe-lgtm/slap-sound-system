@@ -132,12 +132,13 @@
 
     <h2 class="group-title">Układ subów w skali (widok z góry)</h2>
     <div class="stage"><canvas id="fsLay" width="640" height="300" role="img" aria-label="Rozmieszczenie skrzyń subwooferów w skali, z odstępami"></canvas></div>
+    <div class="stage" style="margin-top:8px"><canvas id="fsLay2" width="640" height="300" role="img" aria-label="Widok z boku: skrzynie, ściany, sufit i wysokość ucha"></canvas></div>
     <h2 class="group-title">Pole dźwięku (widok z góry)</h2>
     <div class="stage" id="fsStage2"><canvas id="fsCv" width="640" height="640" role="img" aria-label="Mapa pola dźwięku subwooferów widziana z góry"></canvas></div>
     <div class="group" style="margin-top:12px"><div class="row block"><div class="seg" id="segFSView" role="radiogroup" aria-label="Widok mapy">
-      <label><input type="radio" name="fsview" value="spl"><span>Poziom (dB)</span></label>
-      <label><input type="radio" name="fsview" value="wave"><span>Fala (animacja)</span></label>
-      <label><input type="radio" name="fsview" value="3d"><span>Fala 3D</span></label></div></div></div>
+      <label><input type="radio" name="fsview" value="spl"><span>Poziom</span></label>
+      <label><input type="radio" name="fsview" value="wave"><span>Fala</span></label>
+      <label><input type="radio" name="fsview" value="3d"><span>Fala 3D</span></label><label><input type="radio" name="fsview" value="side"><span>Z boku</span></label></div></div></div>
     <div class="group" id="grpSpd" style="margin-top:12px" hidden><div class="row block"><div class="seg" id="segSpd" role="radiogroup" aria-label="Tempo animacji">
       <label><input type="radio" name="fsspd" value="w"><span>Wolno</span></label><label><input type="radio" name="fsspd" value="m"><span>Średnio</span></label><label><input type="radio" name="fsspd" value="s"><span>Szybciej</span></label></div></div></div>
     <div class="stage" id="fs3Stage" hidden><canvas id="fs3" width="640" height="560" role="img" aria-label="Widok 3D fali dźwiękowej w pomieszczeniu, obracany palcem"></canvas></div>
@@ -191,7 +192,10 @@
   <div class="splbig"><div class="splnum" id="splNow">--</div><div class="splun" id="splUn">dB(A) F</div></div>
   <div class="stage" style="margin-top:8px"><canvas id="splCv" width="640" height="260" role="img" aria-label="Przebieg poziomu dźwięku w czasie"></canvas></div>
   <div class="group" style="margin-top:12px">
+    <div class="row block"><button class="btn" id="splPerm" type="button" style="margin-top:0">Zezwól na mikrofon</button></div>
+    <div class="row block" id="splDevRow" hidden><select id="splDev" aria-label="Wybór mikrofonu z systemu" style="width:100%;font:inherit;padding:10px;border-radius:10px;background:var(--card2,#1c2026);color:inherit;border:1px solid var(--sep,#333)"></select></div>
     <div class="row block"><button class="btn" id="splGo" type="button" style="margin-top:0">Włącz pomiar</button></div>
+    <div class="row block"><p class="group-foot" id="splStat" style="margin:0"></p></div>
     <div class="row block"><div class="seg" id="segW" role="radiogroup" aria-label="Krzywa ważenia">
       <label><input type="radio" name="splw" value="A"><span>A</span></label><label><input type="radio" name="splw" value="C"><span>C</span></label><label><input type="radio" name="splw" value="Z"><span>Z (płasko)</span></label></div></div>
     <div class="row block"><div class="seg" id="segT" role="radiogroup" aria-label="Stała czasowa">
