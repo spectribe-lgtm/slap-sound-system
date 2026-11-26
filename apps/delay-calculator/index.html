@@ -336,6 +336,8 @@ input[type=range] { accent-color: var(--accent); height: 32px; }
 
 #fsLay2 { display: block; width: 100%; height: auto; border-radius: 12px; background: #0B0D10; }
 
+.tiles.one { grid-template-columns: 1fr; }
+
 /* ===== Wersja 4: ciemny motyw narzędziowy, zakładki u góry (styl aplikacji typu live-audio multi-tool) ===== */
 :root:root:root {
   --bg: #111418; --card: #1A1D24; --label: #E8EAED; --label-2: rgba(232,234,237,.62); --label-3: rgba(232,234,237,.32);
@@ -476,13 +478,13 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
       <div class="row"><span class="k">Gdzie liczysz</span>
         <label class="pick"><select id="fref" aria-label="Punkt odniesienia">
           <option value="dj">Miejsce DJ-a</option><option value="foh">FOH</option><option value="other">Inny punkt</option></select><svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></label></div>
-      <div class="row" id=""><label class="k" for="fsDA">Do suba A (środka)</label>
+      <div class="row" id="rowFSDA"><label class="k" for="fsDA">Do suba A (środka)</label>
         <div class="num"><input id="fsDA" inputmode="decimal" autocomplete="off"><span class="u">m</span>
           <div class="stepper"><button type="button" data-step="fsDA" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsDA" data-dir="1" aria-label="Więcej">+</button></div></div></div>
-      <div class="row" id=""><label class="k" for="fsDB">Do głośnika B</label>
+      <div class="row" id="rowFSDB"><label class="k" for="fsDB">Do głośnika B</label>
         <div class="num"><input id="fsDB" inputmode="decimal" autocomplete="off"><span class="u">m</span>
           <div class="stepper"><button type="button" data-step="fsDB" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsDB" data-dir="1" aria-label="Więcej">+</button></div></div></div>
-      <div class="row" id="rowFSDC" hidden><label class="k" for="fsDC">Do głośnika C</label>
+      <div class="row" id="rowFSDC"><label class="k" for="fsDC">Do głośnika C</label>
         <div class="num"><input id="fsDC" inputmode="decimal" autocomplete="off"><span class="u">m</span>
           <div class="stepper"><button type="button" data-step="fsDC" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsDC" data-dir="1" aria-label="Więcej">+</button></div></div></div>
     </div>
@@ -801,12 +803,13 @@ function compute(s) {
 /* ============ STAN ============ */
 const KEY = "seeburg-delay-v4";
 /* Przykład: wieża przy DJ-u. 2 × K Sub 1801 jedna na drugiej, na nich X8, front w jednej płaszczyźnie, ucho 1,6 m nad podłogą, 1,3 m poziomo. */
-const defaults = { A:"ksub1801", pA:"100", B:"x8", pB:"hp", nA:2, arr:"stack", place:"tower", x:1.3, xB:2.5, hr:1.6, bA:0, bB:0, mode:"fs", fs:{ A:"ksub1801", pA:"100", B:"x8", pB:"hp", C:"x6", pC:"hp", useC:false, dA:12, dB:12, dC:6, type:"line", n:4, d:1, arc:90, fi:4, view:"spl" }, useC:false, C:"x6", pC:"hp", xC:4, bC:0, sm:{ A:{}, B:{}, C:{} }, T:20, ref:"dj" };
+const defaults = { A:"ksub1801", pA:"100", B:"x8", pB:"hp", nA:2, arr:"stack", place:"tower", x:1.3, xB:2.5, hr:1.6, bA:0, bB:0, mode:"fs", fs:{ A:"ksub1801", pA:"100", B:"x8", pB:"hp", C:"none", pC:"hp", dA:12, dB:12, dC:6, type:"line", n:4, d:1, arc:90, fi:4, view:"spl" }, useC:false, C:"x6", pC:"hp", xC:4, bC:0, sm:{ A:{}, B:{}, C:{} }, T:20, ref:"dj" };
 let S = Object.assign({}, defaults);
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
 ["A", "B", "C"].forEach(k => { S.sm[k] = S.sm[k] || {}; });
-S.fs = Object.assign({ A:"ksub1801", pA:"100", B:"x8", pB:"hp", C:"x6", pC:"hp", useC:false, dA:12, dB:12, dC:6, type:"line", n:4, d:1, arc:90, fi:4, view:"spl" }, S.fs);
+S.fs = Object.assign({ A:"ksub1801", pA:"100", B:"x8", pB:"hp", C:"none", pC:"hp", dA:12, dB:12, dC:6, type:"line", n:4, d:1, arc:90, fi:4, view:"spl" }, S.fs);
 S.fs.room = Object.assign({ w1:false, w2:false, w3:false, w4:false, ce:false, x0:-12, x1:12, y1:-4, y2:24, hc:8, R:0.8 }, S.fs.room);
+if (!S.fs.cMig) { if (!S.fs.useC) S.fs.C = "none"; S.fs.cMig = 1; }
 S.fs.sp = S.fs.sp || "lin"; S.fs.q = S.fs.q || 2;
 S.useC = false;
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
@@ -817,22 +820,20 @@ const REF = { dj: ["Miejsce DJ-a", "miejsca DJ-a"], foh: ["FOH", "FOH"], other: 
 const CHEV = '<svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function spkHTML(pfx, k) {
   const lc = k.toLowerCase(), lab = pfx === "f" && k === "A" ? "Sub array" : "Głośnik";
-  return `<div class="spkblk spk-${lc}" id="${pfx}blk${k}"${pfx === "f" && k === "C" ? " hidden" : ""}>
+  return `<div class="spkblk spk-${lc}" id="${pfx}blk${k}">
     <div class="row"><span class="k"><span class="badge ${lc}">${k}</span>${lab}</span>
       <label class="pick"><select id="${pfx}sel${k}" aria-label="Model głośnika ${k}"></select>${CHEV}</label></div>
     <div class="row block" id="${pfx}presetRow${k}"><div class="seg sq" id="${pfx}seg${k}" role="radiogroup" aria-label="Preset głośnika ${k}"></div></div></div>`;
 }
 document.getElementById("djSpk").innerHTML = spkHTML("", "A") + spkHTML("", "B");
-document.getElementById("fsSpk").innerHTML = spkHTML("f", "A") + spkHTML("f", "B") +
-  `<div class="row block spkuse spk-c"><span class="k" style="margin-bottom:8px"><span class="badge c">C</span>Trzeci głośnik</span>
-    <div class="seg" id="segUseC" role="radiogroup" aria-label="Głośnik C"><label><input type="radio" name="usec" value="0"><span>Wyłączony</span></label><label><input type="radio" name="usec" value="1"><span>Włączony</span></label></div></div>` + spkHTML("f", "C");
+document.getElementById("fsSpk").innerHTML = spkHTML("f", "A") + spkHTML("f", "B") + spkHTML("f", "C");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 /* ============ WIDOK: kontrolki ============ */
-function fillSelect(el, val, subsOnly) {
-  const opt = m => `<option value="${m.id}">${esc(m.name)}</option>`;
-  if (subsOnly) { el.innerHTML = DB.subs.map(opt).join(""); el.value = val; return; }
-  el.innerHTML = `<optgroup label="Suby">${DB.subs.map(opt).join("")}</optgroup>` +
+function fillSelect(el, val, subsOnly, allowNone) {
+  const opt = m => `<option value="${m.id}">${esc(m.name)}</option>`, none = allowNone ? '<option value="none">Brak</option>' : "";
+  if (subsOnly) { el.innerHTML = none + DB.subs.map(opt).join(""); el.value = val; return; }
+  el.innerHTML = none + `<optgroup label="Suby">${DB.subs.map(opt).join("")}</optgroup>` +
                  `<optgroup label="Topy i koaksjale">${DB.tops.map(opt).join("")}</optgroup>` +
                  `<optgroup label="Inne">${opt(DB.other)}</optgroup>`;
   el.value = val;
@@ -843,10 +844,10 @@ function fillSeg(el, name, presets, val, onPick) {
 }
 const holder = pfx => (pfx === "f" ? S.fs : S);
 function syncSpk(pfx, k) {
-  const h = holder(pfx), m = modelOf(h[k]), pk = "p" + k;
+  const h = holder(pfx), m = modelOf(h[k] === "none" ? { A: "ksub1801", B: "x8", C: "x6" }[k] : h[k]), pk = "p" + k;
   if (!m.presets.some(p => p.id === h[pk])) h[pk] = m.presets[0].id;
   fillSeg($(pfx + "seg" + k), pfx + "s" + k, m.presets, h[pk], v => { h[pk] = v; update(); });
-  $(pfx + "presetRow" + k).hidden = !!m.custom;
+  $(pfx + "presetRow" + k).hidden = !!m.custom || h[k] === "none";
 }
 function syncModels() { ["A", "B"].forEach(k => syncSpk("", k)); ["A", "B", "C"].forEach(k => syncSpk("f", k)); }
 
@@ -891,7 +892,6 @@ document.querySelectorAll(".stepper button").forEach(b => b.addEventListener("cl
 $("selA").addEventListener("change", e => { S.A = e.target.value; syncModels(); update(); });
 $("selB").addEventListener("change", e => { S.B = e.target.value; syncModels(); update(); });
 ["A", "B", "C"].forEach(k => $("fsel" + k).addEventListener("change", e => { S.fs[k] = e.target.value; syncModels(); update(); }));
-document.querySelectorAll('#segUseC input').forEach(i => i.addEventListener("change", () => { S.fs.useC = i.value === "1"; update(); }));
 $("fref").addEventListener("change", e => { S.ref = e.target.value; update(); });
 $("ref").addEventListener("change", e => { S.ref = e.target.value; update(); });
 document.querySelectorAll('#segPlace input').forEach(i => i.addEventListener("change", () => { S.place = i.value; update(); }));
@@ -1315,11 +1315,13 @@ function smCalc() {
 function renderSmaart() {
   if (!$("smBody").firstChild) return;
   const q = smCalc();
+  const pres = k => (S.mode === "fs" || k === "C" ? S.fs[k] !== "none" : true);
   SPK.forEach(k => {
+    $("smc" + k).hidden = !pres(k);
     $("smn" + k).textContent = q.name(k);
     const dl = q.delay(k); $("smcalc" + k).textContent = dl === null ? "bez obliczenia" : "obliczone " + fmt(dl) + " ms";
   });
-  const meas = SPK.filter(k => Number.isFinite(parse(S.sm[k].t || "")));
+  const meas = SPK.filter(k => pres(k) && Number.isFinite(parse(S.sm[k].t || "")));
   const out = $("smOut");
   if (meas.length < 2) { out.innerHTML = whyRow("Brak porównania", "", "n", "Wpisz czas dotarcia co najmniej dwóch głośników. Każdy mierz osobno, przy opóźnieniu 0 ms w procesorze, z tym samym sygnałem odniesienia i tym samym mikrofonem."); return; }
   const M = {}; meas.forEach(k => { M[k] = parse(S.sm[k].t); });
@@ -1423,6 +1425,7 @@ const FSX = [-20, 20], FSY = [-10, 30], GN = 160;               // zakres mapy w
 let fsField = null, fsRaf = null, fsWalls = [];
 function fsSources() {
   const f = S.fs, c = speedOfSound(S.T), d = f.d;
+  if (f.A === "none") return { src: [], c, n: 0 };
   let n = Math.max(1, Math.min(12, Math.round(f.n))); const out = [];
   if (f.type === "grad") n = 2;
   if (f.type === "line" || f.type === "arc") {
@@ -1474,7 +1477,7 @@ function fsEff() {
 }
 const FSN = 80, FSVZ = 40, SLOW = { w: 0.03, m: 0.06, s: 0.12 };
 let fsSim = { t0: 0 }, fsDragging = false;
-function fsCenter() { const s = fsSources().src; return { x: s.reduce((a, q) => a + q.x, 0) / s.length, y: s.reduce((a, q) => a + q.y, 0) / s.length }; }
+function fsCenter() { const s = fsSources().src; if (!s.length) return { x: 0, y: 0 }; return { x: s.reduce((a, q) => a + q.x, 0) / s.length, y: s.reduce((a, q) => a + q.y, 0) / s.length }; }
 function fsCompute() {
   const { eff, src, c } = fsEff(), f = FSF[S.fs.fi], k = 2 * Math.PI * f / c, w = 2 * Math.PI * f, view = S.fs.view, M = eff.length;
   const ex = new Float32Array(M), ey = new Float32Array(M), ez = new Float32Array(M), ea = new Float32Array(M), et = new Float32Array(M), eo = new Uint8Array(M), TX = fsTx();
@@ -1517,7 +1520,7 @@ function fsCompute() {
     return { n, M, arr, cr, ci, amp, maxArr, out: new Float32Array(n) };
   };
   const Hn = FSN * FSN, H = build(Hn, p => { const i = p % FSN, j = (p / FSN) | 0; return [FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / FSN, FSY[1] - (FSY[1] - FSY[0]) * (j + .5) / FSN, FSZR]; });
-  const xc = src.reduce((a, s) => a + s.x, 0) / src.length;
+  const xc = src.length ? src.reduce((a, s) => a + s.x, 0) / src.length : 0;
   const V = three ? build(FSN * FSVZ, p => { const i = p % FSN, j = (p / FSN) | 0; return [xc, FSY[0] + (FSY[1] - FSY[0]) * (i + .5) / FSN, hc * (1 - (j + .5) / FSVZ)]; }) : null;
   let mx = 1e-9;
   for (let p = 0; p < Hn; p++) { const i = p % FSN, j = (p / FSN) | 0, X = FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / FSN, Y = FSY[1] - (FSY[1] - FSY[0]) * (j + .5) / FSN;
@@ -1607,6 +1610,7 @@ function fsLayout() {
   const cv = $("fsLay"); if (!cv) return;
   const ctx = cv.getContext("2d"), W = cv.width, H = cv.height, { src } = fsSources(), m = modelOf(S.fs.A), dm = dimsOf(m);
   const bw = dm[1], bd = dm[2];
+  if (!src.length) { ctx.fillStyle = "#0B0D10"; ctx.fillRect(0, 0, W, H); ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.font = "20px -apple-system, sans-serif"; ctx.textAlign = "center"; ctx.fillText("Brak suba A", W / 2, H / 2); ctx.textAlign = "start"; return; }
   let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
   src.forEach(s => { x0 = Math.min(x0, s.x - bw / 2); x1 = Math.max(x1, s.x + bw / 2); y0 = Math.min(y0, s.y - bd / 2); y1 = Math.max(y1, s.y + bd / 2); });
   const padX = 0.5, padY = 0.9, ppm = Math.min(320, (W - 60) / (x1 - x0 + 2 * padX), (H - 90) / (y1 - y0 + 2 * padY));
@@ -1766,7 +1770,7 @@ function wallFromEvent(e, cv) {
   return { X, Y, W: cv.width, H: cv.height, x: FSX[0] + X / cv.width * (FSX[1] - FSX[0]), y: FSY[1] - Y / cv.height * (FSY[1] - FSY[0]) };
 }
 function fsClampWall(key, x, y) {
-  const rm = S.fs.room, srcs = fsField ? fsField.src : [{ x: 0, y: 0 }], rd = v => Math.round(v * 10) / 10;
+  const rm = S.fs.room, srcs = fsField && fsField.src.length ? fsField.src : [{ x: 0, y: 0 }], rd = v => Math.round(v * 10) / 10;
   const mnx = Math.min(...srcs.map(s => s.x)) - 1, mxx = Math.max(...srcs.map(s => s.x)) + 1, mny = Math.min(...srcs.map(s => s.y)) - 1;
   if (key === "w2") rm.x0 = rd(Math.max(-19, Math.min(mnx, x))); if (key === "w3") rm.x1 = rd(Math.min(19, Math.max(mxx, x)));
   if (key === "w1") rm.y1 = rd(Math.max(-9, Math.min(mny, y))); if (key === "w4") rm.y2 = rd(Math.min(29, Math.max(3, y)));
@@ -1846,6 +1850,7 @@ function fsRoomUI() {
 function fsLayoutSide() {
   const cv = $("fsLay2"); if (!cv) return;
   const ctx = cv.getContext("2d"), W = cv.width, H = cv.height, { src } = fsSources(), m = modelOf(S.fs.A), dm = dimsOf(m), bd = dm[2], bh = dm[0], rm = S.fs.room, cc = fsCenter();
+  if (!src.length) { ctx.fillStyle = "#0B0D10"; ctx.fillRect(0, 0, W, H); ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.font = "20px -apple-system, sans-serif"; ctx.textAlign = "center"; ctx.fillText("Brak suba A", W / 2, H / 2); ctx.textAlign = "start"; return; }
   let y0 = Math.min(...src.map(s => s.y - bd / 2)), y1 = Math.max(...src.map(s => s.y + bd / 2));
   const near = y => y >= y0 - 5 && y <= y1 + 5;                          // widok skupiony na subach, dalekie ściany/sufit tylko jako strzałki przy brzegu
   if (rm.w1 && near(rm.y1)) y0 = Math.min(y0, rm.y1); if (rm.w4 && near(rm.y2)) y1 = Math.max(y1, rm.y2);
@@ -1879,13 +1884,13 @@ function fsLoop(t) {
   fsDraw(t); fsRaf = requestAnimationFrame(fsLoop);
 }
 function fsCalc() {
-  const f = S.fs, c = speedOfSound(S.T), useC = !!f.useC;
-  const M = { A: modelOf(f.A), B: modelOf(f.B), C: modelOf(f.C) };
+  const f = S.fs, c = speedOfSound(S.T), real = k => (f[k] === "none" ? { A: "ksub1801", B: "x8", C: "x6" }[k] : f[k]);
+  const M = { A: modelOf(real("A")), B: modelOf(real("B")), C: modelOf(real("C")) };
   const pk = (m, id) => m.presets.find(p => p.id === id) || m.presets[0];
   const P = { A: pk(M.A, f.pA), B: pk(M.B, f.pB), C: pk(M.C, f.pC) }, D = { A: f.dA, B: f.dB, C: f.dC };
-  const act = useC ? ["A", "B", "C"] : ["A", "B"], custom = act.some(k => M[k].custom);
+  const act = ["A", "B", "C"].filter(k => f[k] !== "none"), custom = act.some(k => M[k].custom);
   const T = {}; act.forEach(k => { T[k] = D[k] / c * 1000 + (custom ? 0 : P[k].L); });
-  const Tm = Math.max(...act.map(k => T[k])), dl = {}; act.forEach(k => { dl[k] = Math.max(0, Tm - T[k]); });
+  const Tm = act.length ? Math.max(...act.map(k => T[k])) : 0, dl = {}; act.forEach(k => { dl[k] = Math.max(0, Tm - T[k]); });
   return { c, act, M, P, D, T, Tm, dl, custom };
 }
 function fsRender() {
@@ -1893,9 +1898,8 @@ function fsRender() {
   $("dj").hidden = S.mode === "fs"; $("fs").hidden = S.mode !== "fs";
   if (S.mode !== "fs") return;
   const f = S.fs, q = fsCalc(), { src, c, n } = fsSources(), fq = FSF[f.fi], lam = c / fq, m = q.M.A;
-  document.querySelectorAll('#segUseC input').forEach(i => { i.checked = i.value === (f.useC ? "1" : "0"); });
-  $("fblkC").hidden = !f.useC; $("ftileC").hidden = !f.useC; $("rowFSDC").hidden = !f.useC;
-  $("ftiles").classList.toggle("three", f.useC);
+  ["A", "B", "C"].forEach(k => { const on = f[k] !== "none"; $("ftile" + k).hidden = !on; $("rowFSD" + k).hidden = !on; $("fpresetRow" + k).hidden = !on || !!q.M[k].custom; });
+  $("ftiles").classList.toggle("three", q.act.length === 3); $("ftiles").classList.toggle("one", q.act.length === 1); $("ftiles").hidden = !q.act.length;
   document.querySelectorAll('#segFSType input').forEach(i => { i.checked = i.value === f.type; });
   document.querySelectorAll('#segFSView input').forEach(i => { i.checked = i.value === f.view; });
   $("fsF").value = f.fi; $("fsFval").textContent = fq + " Hz (λ = " + fmt(lam) + " m)";
@@ -1913,7 +1917,7 @@ function fsRender() {
     $("ftile" + k).classList.toggle("on", on);
     $("fhint" + k).textContent = on ? "ustaw to opóźnienie" : "bez opóźnienia";
   });
-  const mx = Math.max(...q.act.map(k => q.dl[k])), smp = fs => { const z = Math.round(mx / 1000 * fs); return `<b>${z}</b> próbek (${fmt(z / fs * 1000, 3)} ms)`; };
+  const mx = Math.max(0, ...q.act.map(k => q.dl[k])), smp = fs => { const z = Math.round(mx / 1000 * fs); return `<b>${z}</b> próbek (${fmt(z / fs * 1000, 3)} ms)`; };
   $("fdsp").innerHTML = `48 kHz: ${smp(48000)}<br>96 kHz: ${smp(96000)}`;
   const w = $("fwarn"); const est = q.act.filter(k => q.P[k].est);
   w.hidden = !est.length; if (est.length) w.textContent = `Preset ${est.join(" i ")} nie ma wpisu w tabeli Time-Alignment Seeburga, przyjęto czas z presetu HP. Sprawdź pomiarem.`;
@@ -1949,9 +1953,9 @@ $("fsAuto").addEventListener("click", () => {
 /* Start */
 fillSelect($("selA"), S.A);
 fillSelect($("selB"), S.B);
-fillSelect($("fselA"), S.fs.A, true);
-fillSelect($("fselB"), S.fs.B);
-fillSelect($("fselC"), S.fs.C);
+fillSelect($("fselA"), S.fs.A, true, true);
+fillSelect($("fselB"), S.fs.B, false, true);
+fillSelect($("fselC"), S.fs.C, false, true);
 syncModels();
 update();
 </script>

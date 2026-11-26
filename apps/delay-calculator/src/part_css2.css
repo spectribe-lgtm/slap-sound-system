@@ -115,3 +115,5 @@ input[type=range] { accent-color: var(--accent); height: 32px; }
 #fsCv { touch-action: pan-y; }
 
 #fsLay2 { display: block; width: 100%; height: auto; border-radius: 12px; background: #0B0D10; }
+
+.tiles.one { grid-template-columns: 1fr; }
