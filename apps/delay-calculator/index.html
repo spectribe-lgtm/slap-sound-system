@@ -505,6 +505,12 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
       <div class="row" id="rowFSN"><label class="k" for="fsN">Liczba subów</label>
         <div class="num"><input id="fsN" inputmode="decimal" autocomplete="off"><span class="u">szt.</span>
           <div class="stepper"><button type="button" data-step="fsN" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsN" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+      <div class="row" id="rowFSGS" hidden><label class="k" for="fsGS">Liczba staków (2 suby)</label>
+        <div class="num"><input id="fsGS" inputmode="decimal" autocomplete="off"><span class="u">szt.</span>
+          <div class="stepper"><button type="button" data-step="fsGS" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsGS" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+      <div class="row" id="rowFSGD" hidden><label class="k" for="fsGD">Odległość staków</label>
+        <div class="num"><input id="fsGD" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+          <div class="stepper"><button type="button" data-step="fsGD" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsGD" data-dir="1" aria-label="Więcej">+</button></div></div></div>
       <div class="row" id="rowFSD"><label class="k" for="fsD">Odstęp subów</label>
         <div class="num"><input id="fsD" inputmode="decimal" autocomplete="off"><span class="u">m</span>
           <div class="stepper"><button type="button" data-step="fsD" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsD" data-dir="1" aria-label="Więcej">+</button></div></div></div>
@@ -809,6 +815,7 @@ try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.
 ["A", "B", "C"].forEach(k => { S.sm[k] = S.sm[k] || {}; });
 S.fs = Object.assign({ A:"ksub1801", pA:"100", B:"x8", pB:"hp", C:"none", pC:"hp", dA:12, dB:12, dC:6, type:"line", n:4, d:1, arc:90, fi:4, view:"spl" }, S.fs);
 S.fs.room = Object.assign({ w1:false, w2:false, w3:false, w4:false, ce:false, x0:-12, x1:12, y1:-4, y2:24, hc:8, R:0.8 }, S.fs.room);
+S.fs.gs = S.fs.gs || 1; S.fs.gd = S.fs.gd || 2;
 if (!S.fs.cMig) { if (!S.fs.useC) S.fs.C = "none"; S.fs.cMig = 1; }
 S.fs.sp = S.fs.sp || "lin"; S.fs.q = S.fs.q || 2;
 S.useC = false;
@@ -861,6 +868,8 @@ const F = {
   fsDB: { get: () => S.fs.dB, set: v => { S.fs.dB = v; }, step: .1, lo: .1, hi: 500, d: 2 },
   fsDC: { get: () => S.fs.dC, set: v => { S.fs.dC = v; }, step: .1, lo: .1, hi: 500, d: 2 },
   fsN: { get: () => S.fs.n, set: v => { S.fs.n = Math.min(12, Math.max(1, Math.round(v))); }, step: 1, lo: 1, hi: 12, d: 0 },
+  fsGS: { get: () => S.fs.gs, set: v => { S.fs.gs = Math.min(6, Math.max(1, Math.round(v))); }, step: 1, lo: 1, hi: 6, d: 0 },
+  fsGD: { get: () => S.fs.gd, set: v => { S.fs.gd = v; }, step: .05, lo: .1, hi: 15, d: 2 },
   fsD: { get: () => S.fs.d, set: v => { S.fs.d = v; }, step: .05, lo: .1, hi: 10, d: 2 },
   fsA: { get: () => S.fs.arc, set: v => { S.fs.arc = v; }, step: 5, lo: 10, hi: 170, d: 0 },
   temp: { get: () => S.T, set: v => { S.T = v; }, step: 1, lo: -30, hi: 60, d: 1 }
@@ -1419,7 +1428,7 @@ const FSTYPE = {
   line: ["Linia", "Suby obok siebie, wszystkie z tym samym sygnałem i bez opóźnień."],
   arc: ["Łuk", "Suby w prostej linii z opóźnieniami, jakby stały na łuku o podanym kącie. Rozszerza wiązkę. Opóźnione są suby z brzegów."],
   end: ["End-fire", "Suby jeden za drugim. Każdy bliższy publiczności jest opóźniony o odstęp / c, więc z przodu sygnały się sumują, a z tyłu znoszą. Zalecany odstęp ¼ fali."],
-  grad: ["Gradient (kardioida)", "Dwa suby jeden za drugim: tylny opóźniony o odstęp / c i z odwróconą polaryzacją. Wycisza dźwięk za układem. Zalecany odstęp ¼ fali."]
+  grad: ["Gradient (kardioida)", "Stak to dwa suby jeden za drugim: tylny opóźniony o odstęp / c i z odwróconą polaryzacją. Wycisza dźwięk za układem. Zalecany odstęp w staku ¼ fali. Staki możesz ustawić obok siebie w wybranej odległości."]
 };
 const FSX = [-20, 20], FSY = [-10, 30], GN = 160;               // zakres mapy w metrach (x, y) i rozdzielczość siatki
 let fsField = null, fsRaf = null, fsWalls = [];
@@ -1427,7 +1436,7 @@ function fsSources() {
   const f = S.fs, c = speedOfSound(S.T), d = f.d;
   if (f.A === "none") return { src: [], c, n: 0 };
   let n = Math.max(1, Math.min(12, Math.round(f.n))); const out = [];
-  if (f.type === "grad") n = 2;
+  if (f.type === "grad") n = 2 * Math.max(1, Math.min(6, Math.round(f.gs || 1)));
   if (f.type === "line" || f.type === "arc") {
     /* wzór z arkusza S.A.D. (Setups!S, delayed array): opóźnienie = odległość między pozycją na łuku a pozycją w linii, odjęte minimum */
     const half = (n - 1) / 2, A = Math.min(170, Math.max(10, f.arc));
@@ -1445,7 +1454,10 @@ function fsSources() {
     const ys = [0]; gaps.forEach(g => ys.push(ys[ys.length - 1] - g));                                        // ys[0] = front (0), dalej do tyłu
     const rear = ys[ys.length - 1];
     for (let i = 0; i < n; i++) { const y = ys[n - 1 - i]; out.push({ x: 0, y, t: (y - rear) / c * 1000, pol: 1 }); }
-  } else { out.push({ x: 0, y: 0, t: 0, pol: 1 }, { x: 0, y: -d, t: d / c * 1000, pol: -1 }); }
+  } else {                                                          // gradient: gs staków obok siebie, w każdym przód + tył (opóźniony, odwrócony)
+    const gs = Math.max(1, Math.min(6, Math.round(f.gs || 1)));
+    for (let s = 0; s < gs; s++) { const x = (s - (gs - 1) / 2) * f.gd; out.push({ x, y: 0, t: 0, pol: 1 }, { x, y: -d, t: d / c * 1000, pol: -1 }); }
+  }
   return { src: out, c, n };
 }
 const FSZR = 1.6;                                              // wysokość ucha słuchacza, m
@@ -1618,7 +1630,7 @@ function fsLayout() {
   ctx.clearRect(0, 0, W, H); ctx.fillStyle = "#0B0D10"; ctx.fillRect(0, 0, W, H);
   ctx.font = "18px -apple-system, sans-serif"; ctx.textAlign = "center";
   ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fillText("publiczność ↑", W / 2, 24);
-  const overlap = (S.fs.type === "end" || S.fs.type === "grad") ? S.fs.d < bd - 1e-6 : S.fs.d < bw - 1e-6;
+  const overlap = ((S.fs.type === "end" || S.fs.type === "grad") ? S.fs.d < bd - 1e-6 : S.fs.d < bw - 1e-6) || (S.fs.type === "grad" && S.fs.gs > 1 && S.fs.gd < bw - 1e-6);
   src.forEach((s, i) => {
     const w = bw * ppm, h = bd * ppm, X = px(s.x) - w / 2, Y = py(s.y + bd / 2);
     ctx.fillStyle = s.pol < 0 ? "#7d2f2f" : "#3a3d44"; ctx.strokeStyle = overlap ? "#ff6b5b" : "#4C8DFF"; ctx.lineWidth = 2.5;
@@ -1640,6 +1652,7 @@ function fsLayout() {
     if (!horiz) { const u = src[src.length - 2], v = src[src.length - 1]; a.x = u.x; a.y = u.y; b.x = v.x; b.y = v.y; }
     if (horiz) line(px(a.x), py(a.y) - bd * ppm / 2 - 14, px(b.x), py(a.y) - bd * ppm / 2 - 14, "środek–środek " + fmt(S.fs.d * 100, 0) + " cm", -8);
     else line(px(a.x) + bw * ppm / 2 + 16, py(a.y), px(b.x) + bw * ppm / 2 + 16, py(b.y), fmt(S.fs.d * 100, 0) + " cm", 0);
+    if (S.fs.type === "grad" && src.length > 3) { const s0 = src[0], s2 = src[2]; line(px(s0.x), py(s0.y) - bd * ppm / 2 - 14, px(s2.x), py(s0.y) - bd * ppm / 2 - 14, "stak–stak " + fmt(S.fs.gd * 100, 0) + " cm", -8); }
     ctx.fillStyle = overlap ? "#ff6b5b" : "rgba(255,255,255,.75)";
     ctx.fillText(gtxt + (overlap ? " – za blisko" : ""), W / 2, H - 28);
   }
@@ -1904,7 +1917,8 @@ function fsRender() {
   document.querySelectorAll('#segFSView input').forEach(i => { i.checked = i.value === f.view; });
   $("fsF").value = f.fi; $("fsFval").textContent = fq + " Hz (λ = " + fmt(lam) + " m)";
   $("rowFSA").hidden = f.type !== "arc"; $("rowFSSp").hidden = f.type !== "end"; $("rowFSQ").hidden = !(f.type === "end" && f.sp === "log"); $("rowFSQr").hidden = $("rowFSQ").hidden;
-  document.querySelectorAll('#segFSSp input').forEach(i => { i.checked = i.value === f.sp; }); $("fsQ").value = f.q; $("fsQv").textContent = "× " + fmt(f.q, 1); $("rowFSN").hidden = f.type === "grad";
+  document.querySelectorAll('#segFSSp input').forEach(i => { i.checked = i.value === f.sp; }); $("fsQ").value = f.q; $("fsQv").textContent = "× " + fmt(f.q, 1); $("rowFSGS").hidden = $("rowFSGD").hidden = f.type !== "grad"; $("rowFSD").querySelector("label").textContent = f.type === "grad" ? "Odstęp w staku" : "Odstęp subów";
+  $("rowFSN").hidden = f.type === "grad";
   const quarter = f.type === "end" || f.type === "grad";
   $("fsAuto").textContent = `Ustaw odstęp ${quarter ? "¼" : "½"} fali (${fmt(lam / (quarter ? 4 : 2))} m)`;
   $("fsNote").textContent = FSTYPE[f.type][1];
