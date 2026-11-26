@@ -95,6 +95,11 @@
         <label><input type="radio" name="fstype" value="arc"><span>Łuk</span></label>
         <label><input type="radio" name="fstype" value="end"><span>End-fire</span></label>
         <label><input type="radio" name="fstype" value="grad"><span>Gradient</span></label></div></div>
+      <div class="row block" id="rowFSSp" hidden><div class="seg" id="segFSSp" role="radiogroup" aria-label="Rozstaw subów w end-fire">
+        <label><input type="radio" name="fssp" value="lin"><span>Równy odstęp</span></label>
+        <label><input type="radio" name="fssp" value="log"><span>Logarytmiczny</span></label></div></div>
+      <div class="row" id="rowFSQ" hidden><span class="k">Każdy odstęp większy</span><span class="v mono" id="fsQv">× 2,0</span></div>
+      <div class="row block" id="rowFSQr"><input type="range" id="fsQ" min="1.2" max="3" step="0.1" style="width:100%" aria-label="Współczynnik wzrostu odstępu"></div>
       <div class="row" id="rowFSN"><label class="k" for="fsN">Liczba subów</label>
         <div class="num"><input id="fsN" inputmode="decimal" autocomplete="off"><span class="u">szt.</span>
           <div class="stepper"><button type="button" data-step="fsN" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsN" data-dir="1" aria-label="Więcej">+</button></div></div></div>
@@ -135,10 +140,25 @@
     <h2 class="group-title">Układ subów w skali (widok z góry)</h2>
     <div class="stage"><canvas id="fsLay" width="640" height="300" role="img" aria-label="Rozmieszczenie skrzyń subwooferów w skali, z odstępami"></canvas></div>
     <h2 class="group-title">Pole dźwięku (widok z góry)</h2>
-    <div class="stage"><canvas id="fsCv" width="640" height="640" role="img" aria-label="Mapa pola dźwięku subwooferów widziana z góry"></canvas></div>
+    <div class="stage" id="fsStage2"><canvas id="fsCv" width="640" height="640" role="img" aria-label="Mapa pola dźwięku subwooferów widziana z góry"></canvas></div>
     <div class="group" style="margin-top:12px"><div class="row block"><div class="seg" id="segFSView" role="radiogroup" aria-label="Widok mapy">
       <label><input type="radio" name="fsview" value="spl"><span>Poziom (dB)</span></label>
-      <label><input type="radio" name="fsview" value="wave"><span>Fala (animacja)</span></label></div></div></div>
+      <label><input type="radio" name="fsview" value="wave"><span>Fala (animacja)</span></label>
+      <label><input type="radio" name="fsview" value="3d"><span>Fala 3D</span></label></div></div></div>
+    <div class="stage" id="fs3Stage" hidden><canvas id="fs3" width="640" height="560" role="img" aria-label="Widok 3D fali dźwiękowej w pomieszczeniu, obracany palcem"></canvas></div>
+    <h2 class="group-title">Pomieszczenie</h2>
+    <div class="group">
+      <div class="row"><label class="k" for="rw1">Ściana 1 (za subami)</label><input type="checkbox" id="rw1"></div>
+      <div class="row"><label class="k" for="rw2">Ściana 2 (lewa)</label><input type="checkbox" id="rw2"></div>
+      <div class="row"><label class="k" for="rw3">Ściana 3 (prawa)</label><input type="checkbox" id="rw3"></div>
+      <div class="row"><label class="k" for="rw4">Ściana 4 (przed publicznością)</label><input type="checkbox" id="rw4"></div>
+      <div class="row"><label class="k" for="rce">Sufit</label><input type="checkbox" id="rce"></div>
+      <div class="row" id="rowHc"><span class="k">Wysokość sufitu</span><span class="v mono" id="fsHcv">8 m</span></div>
+      <div class="row block"><input type="range" id="fsHc" min="2.5" max="20" step="0.5" style="width:100%" aria-label="Wysokość sufitu"></div>
+      <div class="row"><span class="k">Odbicie ścian (R)</span><span class="v mono" id="fsRv">0,80</span></div>
+      <div class="row block"><input type="range" id="fsR" min="0.2" max="1" step="0.05" style="width:100%" aria-label="Współczynnik odbicia ścian"></div>
+    </div>
+    <p class="group-foot" id="fsWallPos"></p>
     <p class="group-foot" id="fsMapNote"></p>
 
     <h2 class="group-title">Ustawienia procesora</h2>

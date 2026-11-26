@@ -318,6 +318,9 @@ input[type=range] { accent-color: var(--accent); height: 32px; }
 
 #fsLay { display: block; width: 100%; height: auto; border-radius: 12px; background: #0B0D10; }
 
+#fs3 { display: block; width: 100%; height: auto; border-radius: 12px; background: #0B0D10; cursor: grab; }
+#fsCv { touch-action: pan-y; }
+
 /* ===== Wersja 4: ciemny motyw narzędziowy, zakładki u góry (styl aplikacji typu live-audio multi-tool) ===== */
 :root:root:root {
   --bg: #111418; --card: #1A1D24; --label: #E8EAED; --label-2: rgba(232,234,237,.62); --label-3: rgba(232,234,237,.32);
@@ -450,6 +453,11 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
         <label><input type="radio" name="fstype" value="arc"><span>Łuk</span></label>
         <label><input type="radio" name="fstype" value="end"><span>End-fire</span></label>
         <label><input type="radio" name="fstype" value="grad"><span>Gradient</span></label></div></div>
+      <div class="row block" id="rowFSSp" hidden><div class="seg" id="segFSSp" role="radiogroup" aria-label="Rozstaw subów w end-fire">
+        <label><input type="radio" name="fssp" value="lin"><span>Równy odstęp</span></label>
+        <label><input type="radio" name="fssp" value="log"><span>Logarytmiczny</span></label></div></div>
+      <div class="row" id="rowFSQ" hidden><span class="k">Każdy odstęp większy</span><span class="v mono" id="fsQv">× 2,0</span></div>
+      <div class="row block" id="rowFSQr"><input type="range" id="fsQ" min="1.2" max="3" step="0.1" style="width:100%" aria-label="Współczynnik wzrostu odstępu"></div>
       <div class="row" id="rowFSN"><label class="k" for="fsN">Liczba subów</label>
         <div class="num"><input id="fsN" inputmode="decimal" autocomplete="off"><span class="u">szt.</span>
           <div class="stepper"><button type="button" data-step="fsN" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsN" data-dir="1" aria-label="Więcej">+</button></div></div></div>
@@ -490,10 +498,25 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
     <h2 class="group-title">Układ subów w skali (widok z góry)</h2>
     <div class="stage"><canvas id="fsLay" width="640" height="300" role="img" aria-label="Rozmieszczenie skrzyń subwooferów w skali, z odstępami"></canvas></div>
     <h2 class="group-title">Pole dźwięku (widok z góry)</h2>
-    <div class="stage"><canvas id="fsCv" width="640" height="640" role="img" aria-label="Mapa pola dźwięku subwooferów widziana z góry"></canvas></div>
+    <div class="stage" id="fsStage2"><canvas id="fsCv" width="640" height="640" role="img" aria-label="Mapa pola dźwięku subwooferów widziana z góry"></canvas></div>
     <div class="group" style="margin-top:12px"><div class="row block"><div class="seg" id="segFSView" role="radiogroup" aria-label="Widok mapy">
       <label><input type="radio" name="fsview" value="spl"><span>Poziom (dB)</span></label>
-      <label><input type="radio" name="fsview" value="wave"><span>Fala (animacja)</span></label></div></div></div>
+      <label><input type="radio" name="fsview" value="wave"><span>Fala (animacja)</span></label>
+      <label><input type="radio" name="fsview" value="3d"><span>Fala 3D</span></label></div></div></div>
+    <div class="stage" id="fs3Stage" hidden><canvas id="fs3" width="640" height="560" role="img" aria-label="Widok 3D fali dźwiękowej w pomieszczeniu, obracany palcem"></canvas></div>
+    <h2 class="group-title">Pomieszczenie</h2>
+    <div class="group">
+      <div class="row"><label class="k" for="rw1">Ściana 1 (za subami)</label><input type="checkbox" id="rw1"></div>
+      <div class="row"><label class="k" for="rw2">Ściana 2 (lewa)</label><input type="checkbox" id="rw2"></div>
+      <div class="row"><label class="k" for="rw3">Ściana 3 (prawa)</label><input type="checkbox" id="rw3"></div>
+      <div class="row"><label class="k" for="rw4">Ściana 4 (przed publicznością)</label><input type="checkbox" id="rw4"></div>
+      <div class="row"><label class="k" for="rce">Sufit</label><input type="checkbox" id="rce"></div>
+      <div class="row" id="rowHc"><span class="k">Wysokość sufitu</span><span class="v mono" id="fsHcv">8 m</span></div>
+      <div class="row block"><input type="range" id="fsHc" min="2.5" max="20" step="0.5" style="width:100%" aria-label="Wysokość sufitu"></div>
+      <div class="row"><span class="k">Odbicie ścian (R)</span><span class="v mono" id="fsRv">0,80</span></div>
+      <div class="row block"><input type="range" id="fsR" min="0.2" max="1" step="0.05" style="width:100%" aria-label="Współczynnik odbicia ścian"></div>
+    </div>
+    <p class="group-foot" id="fsWallPos"></p>
     <p class="group-foot" id="fsMapNote"></p>
 
     <h2 class="group-title">Ustawienia procesora</h2>
@@ -720,6 +743,8 @@ let S = Object.assign({}, defaults);
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
 ["A", "B", "C"].forEach(k => { S.sm[k] = S.sm[k] || {}; });
 S.fs = Object.assign({ A:"ksub1801", pA:"100", B:"x8", pB:"hp", C:"x6", pC:"hp", useC:false, dA:12, dB:12, dC:6, type:"line", n:4, d:1, arc:90, fi:4, view:"spl" }, S.fs);
+S.fs.room = Object.assign({ w1:false, w2:false, w3:false, w4:false, ce:false, x0:-12, x1:12, y1:-4, y2:24, hc:8, R:0.8 }, S.fs.room);
+S.fs.sp = S.fs.sp || "lin"; S.fs.q = S.fs.q || 2;
 S.useC = false;
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 const $ = id => document.getElementById(id);
@@ -1187,7 +1212,7 @@ const FSTYPE = {
   grad: ["Gradient (kardioida)", "Dwa suby jeden za drugim: tylny opóźniony o odstęp / c i z odwróconą polaryzacją. Wycisza dźwięk za układem. Zalecany odstęp ¼ fali."]
 };
 const FSX = [-20, 20], FSY = [-10, 30], GN = 160;               // zakres mapy w metrach (x, y) i rozdzielczość siatki
-let fsField = null, fsRaf = null;
+let fsField = null, fsRaf = null, fsWalls = [];
 function fsSources() {
   const f = S.fs, c = speedOfSound(S.T), d = f.d;
   let n = Math.max(1, Math.min(12, Math.round(f.n))); const out = [];
@@ -1204,31 +1229,72 @@ function fsSources() {
     const S0 = Math.min(...Sd);
     for (let i = 0; i < n; i++) out.push({ x: (i - half) * d, y: 0, t: (Sd[i] - S0) / c * 1000, pol: 1 });
   } else if (f.type === "end") {
-    for (let i = 0; i < n; i++) out.push({ x: 0, y: (i - (n - 1)) * d, t: i * d / c * 1000, pol: 1 });
+    /* odstępy liczone od frontu do tyłu: najmniejszy d przy froncie; w trybie log każdy kolejny większy o współczynnik q */
+    const gaps = []; for (let k = 0; k < n - 1; k++) gaps.push(f.sp === "log" ? d * Math.pow(f.q, k) : d);   // gaps[0] = przód
+    const ys = [0]; gaps.forEach(g => ys.push(ys[ys.length - 1] - g));                                        // ys[0] = front (0), dalej do tyłu
+    const rear = ys[ys.length - 1];
+    for (let i = 0; i < n; i++) { const y = ys[n - 1 - i]; out.push({ x: 0, y, t: (y - rear) / c * 1000, pol: 1 }); }
   } else { out.push({ x: 0, y: 0, t: 0, pol: 1 }, { x: 0, y: -d, t: d / c * 1000, pol: -1 }); }
   return { src: out, c, n };
 }
+const FSZR = 1.6;                                              // wysokość ucha słuchacza, m
+function fsRoom() {
+  const q = S.fs.room, out = [];
+  if (q.w2) out.push([0, q.x0]); if (q.w3) out.push([0, q.x1]); if (q.w1) out.push([1, q.y1]); if (q.w4) out.push([1, q.y2]); if (q.ce) out.push([2, q.hc]);
+  return out;
+}
+function fsOut(X, Y) { const q = S.fs.room; return (q.w2 && X < q.x0) || (q.w3 && X > q.x1) || (q.w1 && Y < q.y1) || (q.w4 && Y > q.y2); }
+/* źródła punktowe + ich obrazy w ścianach/suficie (metoda źródeł-obrazów, rząd 2, jednakowy współczynnik odbicia R) */
+function fsEff() {
+  const { src, c } = fsSources(), dm = dimsOf(modelOf(S.fs.A)), zs = dm[0] / 2, surf = fsRoom(), R = S.fs.room.R, out = [];
+  src.forEach(s => {
+    let cur = [{ p: [s.x, s.y, zs], a: s.pol, last: -1 }];
+    out.push(...cur.map(o => ({ x: o.p[0], y: o.p[1], z: o.p[2], a: o.a, t: s.t })));
+    for (let ord = 0; ord < 2 && surf.length; ord++) {
+      const nxt = [];
+      cur.forEach(o => surf.forEach((sf, si) => {
+        if (si === o.last) return;
+        const p = o.p.slice(); p[sf[0]] = 2 * sf[1] - p[sf[0]]; nxt.push({ p, a: o.a * R, last: si });
+      }));
+      out.push(...nxt.map(o => ({ x: o.p[0], y: o.p[1], z: o.p[2], a: o.a, t: s.t })));
+      cur = nxt;
+    }
+  });
+  return { eff: out, src, c };
+}
 function fsCompute() {
-  const { src, c } = fsSources(), f = FSF[S.fs.fi], k = 2 * Math.PI * f / c, w = 2 * Math.PI * f;
-  const re = new Float32Array(GN * GN), im = new Float32Array(GN * GN);
-  for (let j = 0; j < GN; j++) {
-    const Y = FSY[1] - (FSY[1] - FSY[0]) * (j + .5) / GN;
-    for (let i = 0; i < GN; i++) {
-      const X = FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / GN;
-      let a = 0, b = 0;
-      for (const s of src) {
-        const r = Math.max(0.3, Math.hypot(X - s.x, Y - s.y)), ph = -k * r - w * s.t / 1000, g = s.pol / r;
-        a += g * Math.cos(ph); b += g * Math.sin(ph);
-      }
-      re[j * GN + i] = a; im[j * GN + i] = b;
+  const { eff, src, c } = fsEff(), f = FSF[S.fs.fi], k = 2 * Math.PI * f / c, w = 2 * Math.PI * f;
+  const three = S.fs.view === "3d", N = three ? 100 : GN, VZ = 48, hc = S.fs.room.ce ? S.fs.room.hc : 10, M = eff.length;
+  const ex = new Float32Array(M), ey = new Float32Array(M), ez = new Float32Array(M), ea = new Float32Array(M), eph = new Float32Array(M);
+  eff.forEach((e, i) => { ex[i] = e.x; ey[i] = e.y; ez[i] = e.z; ea[i] = e.a; eph[i] = -w * e.t / 1000; });
+  const point = (X, Y, Z, o, p) => {
+    let a = 0, b = 0;
+    for (let m = 0; m < M; m++) {
+      const dx = X - ex[m], dy = Y - ey[m], dz = Z - ez[m], r = Math.max(0.3, Math.sqrt(dx * dx + dy * dy + dz * dz)), ph = -k * r + eph[m], g = ea[m] / r;
+      a += g * Math.cos(ph); b += g * Math.sin(ph);
+    }
+    o[p] = a; o[p + 1] = b;
+  };
+  const re = new Float32Array(N * N), im = new Float32Array(N * N), tmp = [0, 0];
+  for (let j = 0; j < N; j++) {
+    const Y = FSY[1] - (FSY[1] - FSY[0]) * (j + .5) / N;
+    for (let i = 0; i < N; i++) {
+      const X = FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / N;
+      point(X, Y, FSZR, tmp, 0); re[j * N + i] = tmp[0]; im[j * N + i] = tmp[1];
     }
   }
   let mx = 1e-9;
-  for (let j = 0; j < GN; j++) for (let i = 0; i < GN; i++) {
-    const X = FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / GN, Y = FSY[1] - (FSY[1] - FSY[0]) * (j + .5) / GN;
-    if (src.every(s => Math.hypot(X - s.x, Y - s.y) > 3)) mx = Math.max(mx, Math.hypot(re[j * GN + i], im[j * GN + i]));
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const X = FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / N, Y = FSY[1] - (FSY[1] - FSY[0]) * (j + .5) / N;
+    if (!fsOut(X, Y) && src.every(s => Math.hypot(X - s.x, Y - s.y) > 3)) mx = Math.max(mx, Math.hypot(re[j * N + i], im[j * N + i]));
   }
-  fsField = { re, im, mx, src, f, c };
+  let vre = null, vim = null, xc = 0;
+  if (three) {                                                 // przekrój pionowy wzdłuż osi y w płaszczyźnie x = środek układu
+    xc = src.reduce((a, s) => a + s.x, 0) / src.length; vre = new Float32Array(N * VZ); vim = new Float32Array(N * VZ);
+    for (let j = 0; j < VZ; j++) { const Z = hc * (1 - (j + .5) / VZ);
+      for (let i = 0; i < N; i++) { const Y = FSY[0] + (FSY[1] - FSY[0]) * (i + .5) / N; point(xc, Y, Z, tmp, 0); vre[j * N + i] = tmp[0]; vim[j * N + i] = tmp[1]; } }
+  }
+  fsField = { re, im, mx, src, f, c, N, VZ, vre, vim, xc, hc };
 }
 const CMAP = [[0, [11, 26, 58]], [.25, [29, 79, 156]], [.5, [41, 182, 168]], [.75, [232, 212, 77]], [1, [232, 68, 47]]];
 function cmap(t) {
@@ -1241,6 +1307,7 @@ function cmap(t) {
 }
 const fsOff = document.createElement("canvas"); fsOff.width = fsOff.height = GN;
 function fsDraw(tms) {
+  if (S.fs.view === "3d") return fsDraw3(tms);
   const cv = $("fsCv"); if (!cv || !fsField) return;
   const ctx = cv.getContext("2d"), o = fsOff.getContext("2d"), img = o.createImageData(GN, GN), F = fsField, wave = S.fs.view === "wave";
   const ph = wave ? (tms / 1000) * 2 * Math.PI * 0.6 : 0, cp = Math.cos(ph), sp = Math.sin(ph);
@@ -1258,6 +1325,7 @@ function fsDraw(tms) {
         const q = Math.round(lv / 3) * 3;                                      // pasma co 3 dB jak w S.A.D.
         col = cmap((q + 36) / 36);
       }
+      { const X2 = FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / GN; if (fsOut(X2, Y)) col = [col[0] * .25, col[1] * .25, col[2] * .25]; }
       const q4 = p * 4; img.data[q4] = col[0]; img.data[q4 + 1] = col[1]; img.data[q4 + 2] = col[2]; img.data[q4 + 3] = 255;
     }
   }
@@ -1276,6 +1344,17 @@ function fsDraw(tms) {
     ctx.fillStyle = s.pol < 0 ? "#7d2f2f" : "#3a3d44"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
     ctx.fillRect(X - w / 2, Y - h / 2, w, h); ctx.strokeRect(X - w / 2, Y - h / 2, w, h);
     ctx.fillStyle = "#fff"; ctx.font = "bold 18px -apple-system, sans-serif"; ctx.textAlign = "center"; ctx.fillText(String(i + 1), X, Y - Math.max(h, 8) / 2 - 6); ctx.textAlign = "start";
+  });
+  fsWalls = [];
+  const rm = S.fs.room, WC = ["#FFB84D", "#4DD0E1", "#B58CFF", "#7BE07B"];
+  [["w1", 1, rm.y1, "1"], ["w2", 0, rm.x0, "2"], ["w3", 0, rm.x1, "3"], ["w4", 1, rm.y2, "4"]].forEach(([key, ax, v, lab], q) => {
+    if (!rm[key]) return;
+    ctx.strokeStyle = WC[q]; ctx.fillStyle = WC[q]; ctx.lineWidth = 5; ctx.beginPath();
+    if (ax === 0) { ctx.moveTo(px(v), 0); ctx.lineTo(px(v), H); } else { ctx.moveTo(0, py(v)); ctx.lineTo(W, py(v)); }
+    ctx.stroke();
+    const hx = ax === 0 ? px(v) : W - 40, hy = ax === 0 ? 40 : py(v); ctx.beginPath(); ctx.arc(hx, hy, 17, 0, 7); ctx.fill();
+    ctx.fillStyle = "#111"; ctx.font = "bold 20px -apple-system, sans-serif"; ctx.textAlign = "center"; ctx.fillText(lab, hx, hy + 7); ctx.textAlign = "start";
+    fsWalls.push({ key, ax, v, px: ax === 0 ? px(v) : null, py: ax === 1 ? py(v) : null });
   });
   ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.font = "20px -apple-system, sans-serif"; ctx.fillText("publiczność ↑", W - 150, 28);
 }
@@ -1311,6 +1390,7 @@ function fsLayout() {
   if (src.length > 1) {
     const a = src[0], b = src[1];
     const gtxt = gap >= 0 ? "szczelina " + gap + " cm" : "nakładają się o " + (-gap) + " cm";
+    if (!horiz) { const u = src[src.length - 2], v = src[src.length - 1]; a.x = u.x; a.y = u.y; b.x = v.x; b.y = v.y; }
     if (horiz) line(px(a.x), py(a.y) - bd * ppm / 2 - 14, px(b.x), py(a.y) - bd * ppm / 2 - 14, "środek–środek " + fmt(S.fs.d * 100, 0) + " cm", -8);
     else line(px(a.x) + bw * ppm / 2 + 16, py(a.y), px(b.x) + bw * ppm / 2 + 16, py(b.y), fmt(S.fs.d * 100, 0) + " cm", 0);
     ctx.fillStyle = overlap ? "#ff6b5b" : "rgba(255,255,255,.75)";
@@ -1319,9 +1399,140 @@ function fsLayout() {
   ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fillText(`skrzynia ${esc(m.name)}: ${fmt(bw * 100, 0)} × ${fmt(bd * 100, 0)} cm (szer. × głęb.) · skala ${fmt(ppm / 100, 1)} px/cm`, W / 2, H - 8);
   ctx.textAlign = "start";
 }
+
+/* ===== Widok 3D: płaszczyzna słuchacza (1,6 m) + przekrój pionowy, obracanie kamery palcem/myszą ===== */
+const cam = { yaw: 0.55, pit: 0.5, dist: 62 };
+const texH = document.createElement("canvas"), texV = document.createElement("canvas");
+function tri(ctx, img, s0, s1, s2, d0, d1, d2) {
+  const cx = (d0[0] + d1[0] + d2[0]) / 3, cy = (d0[1] + d1[1] + d2[1]) / 3, g = (p) => { const dx = p[0] - cx, dy = p[1] - cy, l = Math.hypot(dx, dy) || 1; return [p[0] + dx / l * .7, p[1] + dy / l * .7]; };
+  const e0 = g(d0), e1 = g(d1), e2 = g(d2);
+  ctx.save(); ctx.beginPath(); ctx.moveTo(e0[0], e0[1]); ctx.lineTo(e1[0], e1[1]); ctx.lineTo(e2[0], e2[1]); ctx.closePath(); ctx.clip();
+  const det = (s1[0] - s0[0]) * (s2[1] - s0[1]) - (s2[0] - s0[0]) * (s1[1] - s0[1]);
+  if (Math.abs(det) > 1e-9) {
+    const a = ((d1[0] - d0[0]) * (s2[1] - s0[1]) - (d2[0] - d0[0]) * (s1[1] - s0[1])) / det, b = ((d1[1] - d0[1]) * (s2[1] - s0[1]) - (d2[1] - d0[1]) * (s1[1] - s0[1])) / det;
+    const c = ((s1[0] - s0[0]) * (d2[0] - d0[0]) - (s2[0] - s0[0]) * (d1[0] - d0[0])) / det, d = ((s1[0] - s0[0]) * (d2[1] - d0[1]) - (s2[0] - s0[0]) * (d1[1] - d0[1])) / det;
+    ctx.transform(a, b, c, d, d0[0] - a * s0[0] - c * s0[1], d0[1] - b * s0[0] - d * s0[1]); ctx.drawImage(img, 0, 0);
+  }
+  ctx.restore();
+}
+function drawTex(ctx, img, tw, th, P, sub) {                       // P = rzutowane rogi [lewy-górny, prawy-górny, lewy-dolny, prawy-dolny]
+  const lerp = (u, v) => { const t = [0, 1].map(k => P[0][k] * (1 - u) * (1 - v) + P[1][k] * u * (1 - v) + P[2][k] * (1 - u) * v + P[3][k] * u * v); return t; };
+  for (let a = 0; a < sub; a++) for (let b = 0; b < sub; b++) {
+    const u0 = a / sub, u1 = (a + 1) / sub, v0 = b / sub, v1 = (b + 1) / sub;
+    const q00 = lerp(u0, v0), q10 = lerp(u1, v0), q01 = lerp(u0, v1), q11 = lerp(u1, v1);
+    tri(ctx, img, [u0 * tw, v0 * th], [u1 * tw, v0 * th], [u0 * tw, v1 * th], q00, q10, q01);
+    tri(ctx, img, [u1 * tw, v0 * th], [u1 * tw, v1 * th], [u0 * tw, v1 * th], q10, q11, q01);
+  }
+}
+function paintTex(cv, re, im, N, M, wave, cp, sp, pos) {
+  if (cv.width !== N || cv.height !== M) { cv.width = N; cv.height = M; }
+  const o = cv.getContext("2d"), img = o.createImageData(N, M), F = fsField;
+  for (let j = 0; j < M; j++) for (let i = 0; i < N; i++) {
+    const p = j * N + i, [X, Y, Z] = pos(i, j), rr = Math.max(1, Math.hypot(X, Y + 2, Z - 0.5));
+    const v = (re[p] * cp - im[p] * sp) * rr / (F.mx * 12), m = Math.min(1, Math.abs(v) ** 0.7);
+    let col = v >= 0 ? [20 + 215 * m, 22 + 50 * m, 28 + 20 * m] : [20 + 10 * m, 22 + 110 * m, 28 + 215 * m];
+    if (Z > F.hc || fsOut(X, Y)) col = col.map(x => x * .3);
+    const q4 = p * 4; img.data[q4] = col[0]; img.data[q4 + 1] = col[1]; img.data[q4 + 2] = col[2]; img.data[q4 + 3] = 255;
+  }
+  o.putImageData(img, 0, 0);
+}
+function fsDraw3(tms) {
+  const cv = $("fs3"), F = fsField; if (!cv || !F || !F.vre) return;
+  const ctx = cv.getContext("2d"), W = cv.width, H = cv.height, rm = S.fs.room, N = F.N, VZ = F.VZ;
+  const ph = (tms / 1000) * 2 * Math.PI * 0.6, cp = Math.cos(ph), sp = Math.sin(ph);
+  paintTex(texH, F.re, F.im, N, N, true, cp, sp, (i, j) => [FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / N, FSY[1] - (FSY[1] - FSY[0]) * (j + .5) / N, FSZR]);
+  paintTex(texV, F.vre, F.vim, N, VZ, true, cp, sp, (i, j) => [F.xc, FSY[0] + (FSY[1] - FSY[0]) * (i + .5) / N, F.hc * (1 - (j + .5) / VZ)]);
+  /* kamera */
+  const T = [0, 10, 3], cy = Math.cos(cam.pit), E = [T[0] + cam.dist * cy * Math.sin(cam.yaw), T[1] - cam.dist * cy * Math.cos(cam.yaw), T[2] + cam.dist * Math.sin(cam.pit)];
+  const fw = [T[0] - E[0], T[1] - E[1], T[2] - E[2]], fl = Math.hypot(...fw); fw.forEach((v, i) => fw[i] = v / fl);
+  let rt = [fw[1], -fw[0], 0]; const rl = Math.hypot(...rt); rt = rt.map(v => v / rl);
+  const up = [rt[1] * fw[2] - rt[2] * fw[1], rt[2] * fw[0] - rt[0] * fw[2], rt[0] * fw[1] - rt[1] * fw[0]], FOC = W * 1.15;
+  const pr = p => { const v = [p[0] - E[0], p[1] - E[1], p[2] - E[2]], x = v[0] * rt[0] + v[1] * rt[1] + v[2] * rt[2], y = v[0] * up[0] + v[1] * up[1] + v[2] * up[2], z = v[0] * fw[0] + v[1] * fw[1] + v[2] * fw[2];
+    return [W / 2 + x / Math.max(.5, z) * FOC, H * .52 - y / Math.max(.5, z) * FOC, z]; };
+  ctx.fillStyle = "#0B0D10"; ctx.fillRect(0, 0, W, H);
+  const items = [];
+  const quad = (pts, fill, stroke, lw) => { const q = pts.map(pr); items.push({ d: q.reduce((a, p) => a + p[2], 0) / q.length, f: () => { ctx.beginPath(); q.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1.5; ctx.stroke(); } } }); };
+  const x0 = rm.w2 ? rm.x0 : FSX[0], x1 = rm.w3 ? rm.x1 : FSX[1], y0 = rm.w1 ? rm.y1 : FSY[0], y1 = rm.w4 ? rm.y2 : FSY[1], hw = F.hc;
+  const WC = ["#FFB84D", "#4DD0E1", "#B58CFF", "#7BE07B"], al = c => c + "30";
+  quad([[FSX[0], FSY[1], 0], [FSX[1], FSY[1], 0], [FSX[0], FSY[0], 0], [FSX[1], FSY[0], 0]].map((p, i) => p).filter((p, i) => true).slice(0, 0), null, null);
+  const floor = [[x0, y1, 0], [x1, y1, 0], [x1, y0, 0], [x0, y0, 0]]; quad(floor, "rgba(255,255,255,.04)", "rgba(255,255,255,.25)");
+  if (rm.w1) quad([[x0, y0, 0], [x1, y0, 0], [x1, y0, hw], [x0, y0, hw]], al(WC[0]), WC[0], 2.5);
+  if (rm.w2) quad([[x0, y0, 0], [x0, y1, 0], [x0, y1, hw], [x0, y0, hw]], al(WC[1]), WC[1], 2.5);
+  if (rm.w3) quad([[x1, y0, 0], [x1, y1, 0], [x1, y1, hw], [x1, y0, hw]], al(WC[2]), WC[2], 2.5);
+  if (rm.w4) quad([[x0, y1, 0], [x1, y1, 0], [x1, y1, hw], [x0, y1, hw]], al(WC[3]), WC[3], 2.5);
+  if (rm.ce) quad([[x0, y0, hw], [x1, y0, hw], [x1, y1, hw], [x0, y1, hw]], "rgba(255,255,255,.10)", "rgba(255,255,255,.6)", 2);
+  /* płaszczyzny z falą */
+  const PH = [[FSX[0], FSY[1], FSZR], [FSX[1], FSY[1], FSZR], [FSX[0], FSY[0], FSZR], [FSX[1], FSY[0], FSZR]].map(pr);
+  items.push({ d: PH.reduce((a, p) => a + p[2], 0) / 4 + 0.01, f: () => drawTex(ctx, texH, N, N, PH, 8) });
+  const PV = [[F.xc, FSY[0], F.hc], [F.xc, FSY[1], F.hc], [F.xc, FSY[0], 0], [F.xc, FSY[1], 0]].map(pr);
+  items.push({ d: PV.reduce((a, p) => a + p[2], 0) / 4 - 0.01, f: () => drawTex(ctx, texV, N, VZ, PV, 10) });
+  /* skrzynie subów w skali */
+  const dm = dimsOf(modelOf(S.fs.A)), bw = dm[1] / 2, bd = dm[2] / 2, bh = dm[0];
+  F.src.forEach(s => {
+    const a = s.x - bw, b = s.x + bw, c = s.y - bd, d = s.y + bd, fc = s.pol < 0 ? "#a04040" : "#6b7078";
+    quad([[a, c, bh], [b, c, bh], [b, d, bh], [a, d, bh]], "#8a9099", "#fff", 1);
+    quad([[a, d, 0], [b, d, 0], [b, d, bh], [a, d, bh]], fc, "#fff", 1); quad([[a, c, 0], [b, c, 0], [b, c, bh], [a, c, bh]], "#4a4e55", "#fff", 1);
+    quad([[a, c, 0], [a, d, 0], [a, d, bh], [a, c, bh]], "#555a62", "#fff", 1); quad([[b, c, 0], [b, d, 0], [b, d, bh], [b, c, bh]], "#555a62", "#fff", 1);
+  });
+  items.sort((p, q) => q.d - p.d).forEach(it => it.f());
+  ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.font = "18px -apple-system, sans-serif";
+  const lab = (t, p) => { const q = pr(p); ctx.fillText(t, q[0] + 6, q[1] - 6); };
+  lab("publiczność →", [0, 30, 0.3]); lab("suby", [0, 0, bh + .3]);
+  ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fillText("czerwony: nadciśnienie · niebieski: podciśnienie", 12, H - 12);
+}
+let fsDragW = null, fsPtrs = new Map(), fsPinch = 0;
+function wallFromEvent(e, cv) {
+  const rc = cv.getBoundingClientRect(), sx = cv.width / rc.width, X = (e.clientX - rc.left) * sx, Y = (e.clientY - rc.top) * sx;
+  return { X, Y, W: cv.width, H: cv.height, x: FSX[0] + X / cv.width * (FSX[1] - FSX[0]), y: FSY[1] - Y / cv.height * (FSY[1] - FSY[0]) };
+}
+(function wire3d() {
+  const c2 = $("fsCv"), c3 = $("fs3");
+  let pend = false; const redo = () => { if (pend) return; pend = true; requestAnimationFrame(() => { pend = false; update(false); }); };
+  c2.style.touchAction = "pan-y";
+  c2.addEventListener("pointerdown", e => {
+    const q = wallFromEvent(e, c2); let best = null, bd = 34;
+    fsWalls.forEach(w => { const dd = w.ax === 0 ? Math.abs(q.X - w.px) : Math.abs(q.Y - w.py); if (dd < bd) { bd = dd; best = w; } });
+    if (best) { fsDragW = best; c2.setPointerCapture(e.pointerId); c2.style.touchAction = "none"; e.preventDefault(); }
+  });
+  c2.addEventListener("pointermove", e => {
+    if (!fsDragW) return; const q = wallFromEvent(e, c2), rm = S.fs.room, srcs = fsField ? fsField.src : [{ x: 0, y: 0 }];
+    const mnx = Math.min(...srcs.map(s => s.x)) - 1, mxx = Math.max(...srcs.map(s => s.x)) + 1, mny = Math.min(...srcs.map(s => s.y)) - 1;
+    const rd = v => Math.round(v * 10) / 10;
+    if (fsDragW.key === "w2") rm.x0 = rd(Math.max(-19, Math.min(mnx, q.x))); if (fsDragW.key === "w3") rm.x1 = rd(Math.min(19, Math.max(mxx, q.x)));
+    if (fsDragW.key === "w1") rm.y1 = rd(Math.max(-9, Math.min(mny, q.y))); if (fsDragW.key === "w4") rm.y2 = rd(Math.min(29, Math.max(3, q.y)));
+    e.preventDefault(); redo();
+  });
+  const end = e => { if (fsDragW) { fsDragW = null; c2.style.touchAction = "pan-y"; } };
+  c2.addEventListener("pointerup", end); c2.addEventListener("pointercancel", end);
+  /* kamera 3D */
+  c3.style.touchAction = "none";
+  c3.addEventListener("pointerdown", e => { c3.setPointerCapture(e.pointerId); fsPtrs.set(e.pointerId, [e.clientX, e.clientY]); if (fsPtrs.size === 2) { const [a, b] = [...fsPtrs.values()]; fsPinch = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+  c3.addEventListener("pointermove", e => {
+    const p = fsPtrs.get(e.pointerId); if (!p) return;
+    if (fsPtrs.size === 1) { cam.yaw -= (e.clientX - p[0]) * 0.008; cam.pit = Math.max(0.05, Math.min(1.5, cam.pit + (e.clientY - p[1]) * 0.008)); }
+    fsPtrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if (fsPtrs.size === 2) { const [a, b] = [...fsPtrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (fsPinch) cam.dist = Math.max(18, Math.min(130, cam.dist * fsPinch / d)); fsPinch = d; }
+  });
+  const up = e => { fsPtrs.delete(e.pointerId); fsPinch = 0; };
+  c3.addEventListener("pointerup", up); c3.addEventListener("pointercancel", up);
+  c3.addEventListener("wheel", e => { e.preventDefault(); cam.dist = Math.max(18, Math.min(130, cam.dist * (1 + e.deltaY * 0.001))); }, { passive: false });
+  ["rw1", "rw2", "rw3", "rw4", "rce"].forEach(id => $(id).addEventListener("change", e => { S.fs.room[{ rw1: "w1", rw2: "w2", rw3: "w3", rw4: "w4", rce: "ce" }[id]] = e.target.checked; update(); }));
+  $("fsHc").addEventListener("input", e => { S.fs.room.hc = Number(e.target.value); update(); });
+  $("fsR").addEventListener("input", e => { S.fs.room.R = Number(e.target.value); update(); });
+})();
+function fsRoomUI() {
+  const rm = S.fs.room, f = S.fs;
+  [["rw1", "w1"], ["rw2", "w2"], ["rw3", "w3"], ["rw4", "w4"], ["rce", "ce"]].forEach(([id, k]) => { $(id).checked = !!rm[k]; });
+  $("fsHc").value = rm.hc; $("fsR").value = rm.R;
+  $("fsHcv").textContent = fmt(rm.hc, 1) + " m"; $("fsRv").textContent = fmt(rm.R, 2);
+  $("rowHc").hidden = !rm.ce;
+  const pos = [rm.w1 ? `1: y = ${fmt(rm.y1, 1)} m` : "", rm.w2 ? `2: x = ${fmt(rm.x0, 1)} m` : "", rm.w3 ? `3: x = ${fmt(rm.x1, 1)} m` : "", rm.w4 ? `4: y = ${fmt(rm.y2, 1)} m` : ""].filter(Boolean);
+  $("fsWallPos").textContent = pos.length ? "Ściany (przeciągnij je na mapie 2D): " + pos.join(" · ") : "Wszystkie ściany wyłączone: pole swobodne.";
+  $("fsStage2").hidden = f.view === "3d"; $("fs3Stage").hidden = f.view !== "3d";
+}
 function fsLoop(t) {
   fsRaf = null;
-  if (S.mode !== "fs" || S.fs.view !== "wave" || $("tab-calc").hidden || document.hidden) return;
+  if (S.mode !== "fs" || (S.fs.view !== "wave" && S.fs.view !== "3d") || $("tab-calc").hidden || document.hidden) return;
   fsDraw(t); fsRaf = requestAnimationFrame(fsLoop);
 }
 function fsCalc() {
@@ -1345,7 +1556,8 @@ function fsRender() {
   document.querySelectorAll('#segFSType input').forEach(i => { i.checked = i.value === f.type; });
   document.querySelectorAll('#segFSView input').forEach(i => { i.checked = i.value === f.view; });
   $("fsF").value = f.fi; $("fsFval").textContent = fq + " Hz (λ = " + fmt(lam) + " m)";
-  $("rowFSA").hidden = f.type !== "arc"; $("rowFSN").hidden = f.type === "grad";
+  $("rowFSA").hidden = f.type !== "arc"; $("rowFSSp").hidden = f.type !== "end"; $("rowFSQ").hidden = !(f.type === "end" && f.sp === "log"); $("rowFSQr").hidden = $("rowFSQ").hidden;
+  document.querySelectorAll('#segFSSp input').forEach(i => { i.checked = i.value === f.sp; }); $("fsQ").value = f.q; $("fsQv").textContent = "× " + fmt(f.q, 1); $("rowFSN").hidden = f.type === "grad";
   const quarter = f.type === "end" || f.type === "grad";
   $("fsAuto").textContent = `Ustaw odstęp ${quarter ? "¼" : "½"} fali (${fmt(lam / (quarter ? 4 : 2))} m)`;
   $("fsNote").textContent = FSTYPE[f.type][1];
@@ -1363,8 +1575,10 @@ function fsRender() {
   const w = $("fwarn"); const est = q.act.filter(k => q.P[k].est);
   w.hidden = !est.length; if (est.length) w.textContent = `Preset ${est.join(" i ")} nie ma wpisu w tabeli Time-Alignment Seeburga, przyjęto czas z presetu HP. Sprawdź pomiarem.`;
   /* mapa */
-  fsCompute(); fsDraw(performance.now()); fsLayout();
-  $("fsMapNote").textContent = f.view === "wave"
+  fsRoomUI(); fsCompute(); fsDraw(performance.now()); fsLayout();
+  $("fsMapNote").textContent = f.view === "3d"
+    ? "Obracaj: przeciągnij palcem lub myszą. Zoom: dwa palce lub kółko. Pole liczone metodą źródeł-obrazów (odbicia rzędu 1 i 2, jednakowy współczynnik odbicia R, ściany idealnie płaskie, bez modów pomieszczenia i bez odbicia od podłogi). To model poglądowy, nie zastępuje pomiaru."
+    : f.view === "wave"
     ? "Animacja pokazuje chwilowe ciśnienie na wybranej częstotliwości (czerwony: nadciśnienie, niebieski: podciśnienie), spowolniona. Widać, dokąd fala się sumuje, a gdzie się znosi."
     : "Pasma co 3 dB. 0 dB to najgłośniejsze miejsce dalej niż 3 m od subów, ciemny niebieski to −36 dB i mniej. Dla każdej częstotliwości mapa liczy się od nowa.";
   /* tabela */
@@ -1376,10 +1590,12 @@ function fsRender() {
     `Do wpisania w procesorze: grupa ${fmt(q.dl.A)} ms + układ ${fmt(s.t)} ms${s.pol < 0 ? ", polaryzacja odwrócona" : ""}. Pozycja: ${fmt(s.x)} m w bok, ${fmt(s.y)} m w głąb (0 = front suba najbliższego publiczności).`); });
   const d = f.d, sum = whyRow("Odstęp subów", `${fmt(d)} m`, "n", `To ${fmt(d / lam, 2)} długości fali przy ${fq} Hz (λ = ${fmt(lam)} m, c = ${fmt(c, 1)} m/s). ${quarter ? "Dla end-fire i gradientu optimum to ¼ λ." : "Dla układów poziomych typowo ½ λ."}`, "final");
   $("fsOut").innerHTML = rowsG.join("") + sum + rowsS.join("");
-  if (!fsRaf && f.view === "wave") fsRaf = requestAnimationFrame(fsLoop);
+  if (!fsRaf && (f.view === "wave" || f.view === "3d")) fsRaf = requestAnimationFrame(fsLoop);
 }
 document.querySelectorAll('#segMode input').forEach(i => i.addEventListener("change", () => { S.mode = i.value; update(); }));
 document.querySelectorAll('#segFSType input').forEach(i => i.addEventListener("change", () => { S.fs.type = i.value; if (i.value === "grad") S.fs.n = 2; update(); }));
+document.querySelectorAll('#segFSSp input').forEach(i => i.addEventListener("change", () => { S.fs.sp = i.value; update(); }));
+$("fsQ").addEventListener("input", e => { S.fs.q = Number(e.target.value); update(); });
 document.querySelectorAll('#segFSView input').forEach(i => i.addEventListener("change", () => { S.fs.view = i.value; update(); }));
 $("fsF").addEventListener("input", e => { S.fs.fi = Number(e.target.value); update(); });
 $("fsAuto").addEventListener("click", () => {

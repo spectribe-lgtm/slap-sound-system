@@ -110,3 +110,6 @@ input[type=range] { accent-color: var(--accent); height: 32px; }
 .spkuse { padding-bottom: 6px; }
 
 #fsLay { display: block; width: 100%; height: auto; border-radius: 12px; background: #0B0D10; }
+
+#fs3 { display: block; width: 100%; height: auto; border-radius: 12px; background: #0B0D10; cursor: grab; }
+#fsCv { touch-action: pan-y; }
