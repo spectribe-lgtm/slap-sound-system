@@ -107,7 +107,7 @@ function geom(s) {
            dA: Math.hypot(xA, rA), dB: Math.hypot(xB, rB), dC: Math.hypot(xC, rC), dims: { A: dA, B: dB, C: dC } };
 }
 function compute(s) {
-  const mA = modelOf(s.A), mB = modelOf(s.B), mC = modelOf(s.C), useC = !!s.useC;
+  const mA = modelOf(s.A), mB = modelOf(s.B), mC = modelOf(s.C), useC = false;
   const pick = (m, id) => m.presets.find(p => p.id === id) || m.presets[0];
   const pA = pick(mA, s.pA), pB = pick(mB, s.pB), pC = pick(mC, s.pC);
   const c = speedOfSound(s.T);
@@ -128,21 +128,35 @@ function compute(s) {
 /* ============ STAN ============ */
 const KEY = "seeburg-delay-v4";
 /* Przykład: wieża przy DJ-u. 2 × K Sub 1801 jedna na drugiej, na nich X8, front w jednej płaszczyźnie, ucho 1,6 m nad podłogą, 1,3 m poziomo. */
-const defaults = { A:"ksub1801", pA:"100", B:"x8", pB:"hp", nA:2, arr:"stack", place:"tower", x:1.3, xB:2.5, hr:1.6, bA:0, bB:0, mode:"fs", fs:{ model:"ksub1801", type:"line", n:4, d:1, arc:90, fi:4, view:"spl" }, useC:false, C:"x6", pC:"hp", xC:4, bC:0, sm:{ A:{}, B:{}, C:{} }, T:20, ref:"dj" };
+const defaults = { A:"ksub1801", pA:"100", B:"x8", pB:"hp", nA:2, arr:"stack", place:"tower", x:1.3, xB:2.5, hr:1.6, bA:0, bB:0, mode:"fs", fs:{ A:"ksub1801", pA:"100", B:"x8", pB:"hp", C:"x6", pC:"hp", useC:false, dA:12, dB:12, dC:6, type:"line", n:4, d:1, arc:90, fi:4, view:"spl" }, useC:false, C:"x6", pC:"hp", xC:4, bC:0, sm:{ A:{}, B:{}, C:{} }, T:20, ref:"dj" };
 let S = Object.assign({}, defaults);
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
 ["A", "B", "C"].forEach(k => { S.sm[k] = S.sm[k] || {}; });
-S.fs = Object.assign({ model:"ksub1801", type:"line", n:4, d:1, arc:90, fi:4, view:"spl" }, S.fs);
+S.fs = Object.assign({ A:"ksub1801", pA:"100", B:"x8", pB:"hp", C:"x6", pC:"hp", useC:false, dA:12, dB:12, dC:6, type:"line", n:4, d:1, arc:90, fi:4, view:"spl" }, S.fs);
+S.useC = false;
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 const $ = id => document.getElementById(id);
 const fmt = (n, d = 2) => n.toFixed(d).replace(".", ",").replace(/^-0([,.]0+)?$/, "0$1");
 const sgn = (n, d = 2) => (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n), d);
 const REF = { dj: ["Miejsce DJ-a", "miejsca DJ-a"], foh: ["FOH", "FOH"], other: ["Inny punkt", "punktu odniesienia"] };
+const CHEV = '<svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function spkHTML(pfx, k) {
+  const lc = k.toLowerCase(), lab = pfx === "f" && k === "A" ? "Sub array" : "Głośnik";
+  return `<div class="spkblk spk-${lc}" id="${pfx}blk${k}"${pfx === "f" && k === "C" ? " hidden" : ""}>
+    <div class="row"><span class="k"><span class="badge ${lc}">${k}</span>${lab}</span>
+      <label class="pick"><select id="${pfx}sel${k}" aria-label="Model głośnika ${k}"></select>${CHEV}</label></div>
+    <div class="row block" id="${pfx}presetRow${k}"><div class="seg sq" id="${pfx}seg${k}" role="radiogroup" aria-label="Preset głośnika ${k}"></div></div></div>`;
+}
+document.getElementById("djSpk").innerHTML = spkHTML("", "A") + spkHTML("", "B");
+document.getElementById("fsSpk").innerHTML = spkHTML("f", "A") + spkHTML("f", "B") +
+  `<div class="row block spkuse spk-c"><span class="k" style="margin-bottom:8px"><span class="badge c">C</span>Trzeci głośnik</span>
+    <div class="seg" id="segUseC" role="radiogroup" aria-label="Głośnik C"><label><input type="radio" name="usec" value="0"><span>Wyłączony</span></label><label><input type="radio" name="usec" value="1"><span>Włączony</span></label></div></div>` + spkHTML("f", "C");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 /* ============ WIDOK: kontrolki ============ */
-function fillSelect(el, val) {
+function fillSelect(el, val, subsOnly) {
   const opt = m => `<option value="${m.id}">${esc(m.name)}</option>`;
+  if (subsOnly) { el.innerHTML = DB.subs.map(opt).join(""); el.value = val; return; }
   el.innerHTML = `<optgroup label="Suby">${DB.subs.map(opt).join("")}</optgroup>` +
                  `<optgroup label="Topy i koaksjale">${DB.tops.map(opt).join("")}</optgroup>` +
                  `<optgroup label="Inne">${opt(DB.other)}</optgroup>`;
@@ -152,29 +166,27 @@ function fillSeg(el, name, presets, val, onPick) {
   el.innerHTML = presets.map(p => `<label><input type="radio" name="${name}" value="${p.id}"${p.id === val ? " checked" : ""}><span>${esc(p.label)}</span></label>`).join("");
   el.querySelectorAll("input").forEach(i => i.addEventListener("change", () => onPick(i.value)));
 }
-function syncModels() {
-  const mA = modelOf(S.A), mB = modelOf(S.B);
-  if (!mA.presets.some(p => p.id === S.pA)) S.pA = mA.presets[0].id;
-  if (!mB.presets.some(p => p.id === S.pB)) S.pB = mB.presets[0].id;
-  fillSeg($("segA"), "sa", mA.presets, S.pA, v => { S.pA = v; update(); });
-  fillSeg($("segB"), "sb", mB.presets, S.pB, v => { S.pB = v; update(); });
-  const mC = modelOf(S.C);
-  if (!mC.presets.some(p => p.id === S.pC)) S.pC = mC.presets[0].id;
-  fillSeg($("segC"), "sc", mC.presets, S.pC, v => { S.pC = v; update(); });
-  $("presetRowC").hidden = !!mC.custom;
-  $("presetRowA").hidden = !!mA.custom;
-  $("presetRowB").hidden = !!mB.custom;
+const holder = pfx => (pfx === "f" ? S.fs : S);
+function syncSpk(pfx, k) {
+  const h = holder(pfx), m = modelOf(h[k]), pk = "p" + k;
+  if (!m.presets.some(p => p.id === h[pk])) h[pk] = m.presets[0].id;
+  fillSeg($(pfx + "seg" + k), pfx + "s" + k, m.presets, h[pk], v => { h[pk] = v; update(); });
+  $(pfx + "presetRow" + k).hidden = !!m.custom;
 }
+function syncModels() { ["A", "B"].forEach(k => syncSpk("", k)); ["A", "B", "C"].forEach(k => syncSpk("f", k)); }
 
 /* Pola liczbowe: konfiguracja (odczyt, zapis, krok, zakres, miejsca po przecinku) */
 const num = (key, step, lo, hi, d = 2) => ({ get: () => S[key], set: v => { S[key] = v; }, step, lo, hi, d });
 const F = {
   nA: { get: () => S.nA, set: v => { S.nA = Math.min(4, Math.max(1, Math.round(v))); }, step: 1, lo: 1, hi: 4, d: 0 },
   fX: num("x", .05, .05, 200), fXB: num("xB", .05, .05, 200), fR: num("hr", .05, 0, 4),
-  bA: num("bA", .05, 0, 10), bB: num("bB", .05, 0, 10), fsN: { get: () => S.fs.n, set: v => { S.fs.n = Math.min(12, Math.max(1, Math.round(v))); }, step: 1, lo: 1, hi: 12, d: 0 },
+  bA: num("bA", .05, 0, 10), bB: num("bB", .05, 0, 10),
+  fsDA: { get: () => S.fs.dA, set: v => { S.fs.dA = v; }, step: .1, lo: .1, hi: 500, d: 2 },
+  fsDB: { get: () => S.fs.dB, set: v => { S.fs.dB = v; }, step: .1, lo: .1, hi: 500, d: 2 },
+  fsDC: { get: () => S.fs.dC, set: v => { S.fs.dC = v; }, step: .1, lo: .1, hi: 500, d: 2 },
+  fsN: { get: () => S.fs.n, set: v => { S.fs.n = Math.min(12, Math.max(1, Math.round(v))); }, step: 1, lo: 1, hi: 12, d: 0 },
   fsD: { get: () => S.fs.d, set: v => { S.fs.d = v; }, step: .05, lo: .1, hi: 10, d: 2 },
   fsA: { get: () => S.fs.arc, set: v => { S.fs.arc = v; }, step: 5, lo: 10, hi: 170, d: 0 },
-  fXC: num("xC", .05, .05, 200), bC: num("bC", .05, 0, 10),
   temp: { get: () => S.T, set: v => { S.T = v; }, step: 1, lo: -30, hi: 60, d: 1 }
 };
 const parse = v => parseFloat(String(v).replace(",", ".").replace(/[^0-9.\-]/g, ""));
@@ -203,8 +215,9 @@ document.querySelectorAll(".stepper button").forEach(b => b.addEventListener("cl
 }));
 $("selA").addEventListener("change", e => { S.A = e.target.value; syncModels(); update(); });
 $("selB").addEventListener("change", e => { S.B = e.target.value; syncModels(); update(); });
-$("selC").addEventListener("change", e => { S.C = e.target.value; syncModels(); update(); });
-document.querySelectorAll('#segUseC input').forEach(i => i.addEventListener("change", () => { S.useC = i.value === "1"; update(); }));
+["A", "B", "C"].forEach(k => $("fsel" + k).addEventListener("change", e => { S.fs[k] = e.target.value; syncModels(); update(); }));
+document.querySelectorAll('#segUseC input').forEach(i => i.addEventListener("change", () => { S.fs.useC = i.value === "1"; update(); }));
+$("fref").addEventListener("change", e => { S.ref = e.target.value; update(); });
 $("ref").addEventListener("change", e => { S.ref = e.target.value; update(); });
 document.querySelectorAll('#segPlace input').forEach(i => i.addEventListener("change", () => { S.place = i.value; update(); }));
 document.querySelectorAll('#segArr input').forEach(i => i.addEventListener("change", () => { S.arr = i.value; update(); }));
@@ -229,13 +242,9 @@ function render(r) {
   const nm = { A: (g.n > 1 ? g.n + "× " : "") + r.mA.name, B: r.mB.name };
   $("whoA").textContent = "A · " + nm.A;
   $("whoB").textContent = "B · " + nm.B;
-  nm.C = r.mC.name; $("whoC").textContent = "C · " + nm.C;
-  $("tileC").hidden = !r.useC; document.querySelector(".tiles").classList.toggle("three", r.useC);
-  $("grpC").hidden = !r.useC; $("rowXC").hidden = $("rowBC").hidden = !r.useC;
-  document.querySelectorAll('#segUseC input').forEach(i => { i.checked = i.value === (r.useC ? "1" : "0"); });
   $("kX").textContent = g.tower ? "Do frontu skrzyń" : "Do frontu A";
   $("kXB").textContent = "Do frontu B";
-  $("ref").value = S.ref;
+  $("ref").value = S.ref; $("fref").value = S.ref;
   document.querySelectorAll('#segPlace input').forEach(i => { i.checked = i.value === S.place; });
   document.querySelectorAll('#segArr input').forEach(i => { i.checked = i.value === S.arr; });
   ["rowXB", "rowBA", "rowBB"].forEach(id => { $(id).hidden = g.tower; }); $("arrRow").hidden = g.n < 2;
@@ -246,7 +255,7 @@ function render(r) {
   const ok = [S.x, S.xB, S.hr, S.T].every(Number.isFinite) && g.dA > 0 && g.dB > 0 && (!r.useC || (Number.isFinite(S.xC) && Number.isFinite(S.bC) && g.dC > 0));
   $("cval").textContent = fmt(r.c, 1) + " m/s";
   if (!ok) {
-    ["valA", "valB", "valC"].forEach(i => $(i).textContent = "—");
+    ["valA", "valB"].forEach(i => $(i).textContent = "—");
     $("dsp").textContent = "Wpisz odległości i temperaturę."; $("warn").hidden = true; $("why").innerHTML = ""; return;
   }
   const show = (k, ms) => {
@@ -478,31 +487,37 @@ function smaartBuild() {
     bind("smT" + k, "t"); bind("smH" + k, "h"); bind("smP" + k, "p", true); bind("smN" + k, "n");
   });
 }
+function smCalc() {
+  if (S.mode === "fs") { const q = fsCalc(); return { act: q.act, name: k => q.M[k].name, delay: k => (q.act.includes(k) ? q.dl[k] : null), fc: q.P.A.lpf || q.P.B.lpf || (q.act.includes("C") && q.P.C.lpf) || 100 }; }
+  const r = compute(S);
+  return { act: r.act, name: k => (k === "C" ? modelOf(S.fs.C).name : r["m" + k].name), delay: k => (r.act.includes(k) ? r["delay" + k] : null), fc: r.pA.lpf || r.pB.lpf || 100 };
+}
 function renderSmaart() {
   if (!$("smBody").firstChild) return;
-  const r = compute(S);
+  const q = smCalc();
   SPK.forEach(k => {
-    const on = r.act.includes(k); $("smc" + k).hidden = !on;
-    if (on) { $("smn" + k).textContent = r["m" + k].name; $("smcalc" + k).textContent = "obliczone " + fmt(r["delay" + k]) + " ms"; }
+    $("smn" + k).textContent = q.name(k);
+    const dl = q.delay(k); $("smcalc" + k).textContent = dl === null ? "bez obliczenia" : "obliczone " + fmt(dl) + " ms";
   });
-  const meas = r.act.filter(k => Number.isFinite(parse(S.sm[k].t || "")));
+  const meas = SPK.filter(k => Number.isFinite(parse(S.sm[k].t || "")));
   const out = $("smOut");
   if (meas.length < 2) { out.innerHTML = whyRow("Brak porównania", "", "n", "Wpisz czas dotarcia co najmniej dwóch głośników. Każdy mierz osobno, przy opóźnieniu 0 ms w procesorze, z tym samym sygnałem odniesienia i tym samym mikrofonem."); return; }
   const M = {}; meas.forEach(k => { M[k] = parse(S.sm[k].t); });
-  const Mm = Math.max(...meas.map(k => M[k]));
-  const fc = r.pA.lpf || r.pB.lpf || (r.useC && r.pC.lpf) || 100;
+  const Mm = Math.max(...meas.map(k => M[k])), fc = q.fc;
   let html = "", copy = [];
   meas.forEach(k => {
-    const md = Mm - M[k], calc = r["delay" + k], diff = md - calc, deg = 360 * fc * diff / 1000;
-    const status = Math.abs(diff) < 0.1 ? "zgodne z obliczeniem" : Math.abs(diff) < 0.5 ? "drobna różnica" : "duża różnica: sprawdź pomiar i odległości";
-    const coh = parse(S.sm[k].h || ""), warn = [];
+    const md = Mm - M[k], calc = q.delay(k), coh = parse(S.sm[k].h || ""), warn = [];
     if (S.sm[k].p === "-") warn.push("polaryzacja odwrócona");
     if (Number.isFinite(coh) && coh < 80) warn.push(`koherencja ${fmt(coh, 0)} % (orientacyjnie za niska, pomiar niepewny)`);
-    copy.push(`${k} ${r["m" + k].name}: ${fmt(md)} ms`);
-    html += whyRow(who(k, r["m" + k].name), `${fmt(md)} ms`, md > 0 ? k.toLowerCase() : "n",
-      `Z pomiaru: ${fmt(md)} ms. Obliczone: ${fmt(calc)} ms. Różnica ${sgn(diff)} ms, czyli około ${sgn(deg, 0)}° przy ${fc} Hz. <b>${status}.</b>` + (warn.length ? ` Uwaga: ${warn.join(", ")}.` : "") + (S.sm[k].n ? ` Notatka: ${esc(S.sm[k].n)}` : ""));
+    copy.push(`${k} ${q.name(k)}: ${fmt(md)} ms`);
+    let txt;
+    if (calc === null) txt = `Z pomiaru: ${fmt(md)} ms. Ten głośnik nie ma obliczenia w trybie DJ Monitor.`;
+    else {
+      const diff = md - calc, deg = 360 * fc * diff / 1000, status = Math.abs(diff) < 0.1 ? "zgodne z obliczeniem" : Math.abs(diff) < 0.5 ? "drobna różnica" : "duża różnica: sprawdź pomiar i odległości";
+      txt = `Z pomiaru: ${fmt(md)} ms. Obliczone: ${fmt(calc)} ms. Różnica ${sgn(diff)} ms, czyli około ${sgn(deg, 0)}° przy ${fc} Hz. <b>${status}.</b>`;
+    }
+    html += whyRow(who(k, q.name(k)), `${fmt(md)} ms`, md > 0 ? k.toLowerCase() : "n", txt + (warn.length ? ` Uwaga: ${warn.join(", ")}.` : "") + (S.sm[k].n ? ` Notatka: ${esc(S.sm[k].n)}` : ""));
   });
-  if (meas.length < r.act.length) html += whyRow("Pomiar niepełny", "", "n", "Nie wszystkie aktywne głośniki mają zmierzony czas, więc „najpóźniejszy” liczy się tylko z tych, które wpisano.");
   out.innerHTML = html;
   $("smCopy").onclick = async () => { const b = $("smCopy"), t = copy.join(" · "); try { await navigator.clipboard.writeText(t); b.textContent = "Skopiowano"; } catch (e) { b.textContent = t; } setTimeout(() => { b.textContent = "Kopiuj opóźnienia z pomiaru"; }, 1600); };
 }
@@ -668,7 +683,7 @@ function fsDraw(tms) {
   for (let x = -20; x <= 20; x += 10) { ctx.beginPath(); ctx.moveTo(px(x), 0); ctx.lineTo(px(x), H); ctx.stroke(); }
   for (let y = -10; y <= 30; y += 10) { ctx.beginPath(); ctx.moveTo(0, py(y)); ctx.lineTo(W, py(y)); ctx.stroke(); }
   for (let y = 10; y <= 30; y += 10) ctx.fillText(y + " m", 8, py(y) - 6);
-  const m = modelOf(S.fs.model), dm = dimsOf(m), ppm = W / (FSX[1] - FSX[0]);
+  const m = modelOf(S.fs.A), dm = dimsOf(m), ppm = W / (FSX[1] - FSX[0]);
   F.src.forEach((s, i) => {
     const w = Math.max(10, dm[1] * ppm), h = Math.max(10, dm[2] * ppm), X = px(s.x), Y = py(s.y);
     ctx.fillStyle = s.pol < 0 ? "#7d2f2f" : "#3a3d44"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
@@ -682,11 +697,24 @@ function fsLoop(t) {
   if (S.mode !== "fs" || S.fs.view !== "wave" || $("tab-calc").hidden || document.hidden) return;
   fsDraw(t); fsRaf = requestAnimationFrame(fsLoop);
 }
+function fsCalc() {
+  const f = S.fs, c = speedOfSound(S.T), useC = !!f.useC;
+  const M = { A: modelOf(f.A), B: modelOf(f.B), C: modelOf(f.C) };
+  const pk = (m, id) => m.presets.find(p => p.id === id) || m.presets[0];
+  const P = { A: pk(M.A, f.pA), B: pk(M.B, f.pB), C: pk(M.C, f.pC) }, D = { A: f.dA, B: f.dB, C: f.dC };
+  const act = useC ? ["A", "B", "C"] : ["A", "B"], custom = act.some(k => M[k].custom);
+  const T = {}; act.forEach(k => { T[k] = D[k] / c * 1000 + (custom ? 0 : P[k].L); });
+  const Tm = Math.max(...act.map(k => T[k])), dl = {}; act.forEach(k => { dl[k] = Math.max(0, Tm - T[k]); });
+  return { c, act, M, P, D, T, Tm, dl, custom };
+}
 function fsRender() {
   document.querySelectorAll('#segMode input').forEach(i => { i.checked = i.value === S.mode; });
-  $("dj").hidden = S.mode !== "fs" ? false : true; $("fs").hidden = S.mode !== "fs";
+  $("dj").hidden = S.mode === "fs"; $("fs").hidden = S.mode !== "fs";
   if (S.mode !== "fs") return;
-  const f = S.fs, { src, c, n } = fsSources(), fq = FSF[f.fi], lam = c / fq;
+  const f = S.fs, q = fsCalc(), { src, c, n } = fsSources(), fq = FSF[f.fi], lam = c / fq, m = q.M.A;
+  document.querySelectorAll('#segUseC input').forEach(i => { i.checked = i.value === (f.useC ? "1" : "0"); });
+  $("fblkC").hidden = !f.useC; $("ftileC").hidden = !f.useC; $("rowFSDC").hidden = !f.useC;
+  $("ftiles").classList.toggle("three", f.useC);
   document.querySelectorAll('#segFSType input').forEach(i => { i.checked = i.value === f.type; });
   document.querySelectorAll('#segFSView input').forEach(i => { i.checked = i.value === f.view; });
   $("fsF").value = f.fi; $("fsFval").textContent = fq + " Hz (λ = " + fmt(lam) + " m)";
@@ -694,16 +722,33 @@ function fsRender() {
   const quarter = f.type === "end" || f.type === "grad";
   $("fsAuto").textContent = `Ustaw odstęp ${quarter ? "¼" : "½"} fali (${fmt(lam / (quarter ? 4 : 2))} m)`;
   $("fsNote").textContent = FSTYPE[f.type][1];
-  const m = modelOf(f.model);
+  /* kafelki */
+  const names = { A: (n > 1 ? n + "× " : "") + q.M.A.name, B: q.M.B.name, C: q.M.C.name };
+  q.act.forEach(k => {
+    const ms = q.dl[k], on = ms > 0;
+    $("fwho" + k).textContent = k + " · " + names[k];
+    $("fval" + k).innerHTML = fmt(ms) + "<small>ms</small>";
+    $("ftile" + k).classList.toggle("on", on);
+    $("fhint" + k).textContent = on ? "ustaw to opóźnienie" : "bez opóźnienia";
+  });
+  const mx = Math.max(...q.act.map(k => q.dl[k])), smp = fs => { const z = Math.round(mx / 1000 * fs); return `<b>${z}</b> próbek (${fmt(z / fs * 1000, 3)} ms)`; };
+  $("fdsp").innerHTML = `48 kHz: ${smp(48000)}<br>96 kHz: ${smp(96000)}`;
+  const w = $("fwarn"); const est = q.act.filter(k => q.P[k].est);
+  w.hidden = !est.length; if (est.length) w.textContent = `Preset ${est.join(" i ")} nie ma wpisu w tabeli Time-Alignment Seeburga, przyjęto czas z presetu HP. Sprawdź pomiarem.`;
+  /* mapa */
   fsCompute(); fsDraw(performance.now());
   $("fsMapNote").textContent = f.view === "wave"
     ? "Animacja pokazuje chwilowe ciśnienie na wybranej częstotliwości (czerwony: nadciśnienie, niebieski: podciśnienie), spowolniona. Widać, dokąd fala się sumuje, a gdzie się znosi."
     : "Pasma co 3 dB. 0 dB to najgłośniejsze miejsce dalej niż 3 m od subów, ciemny niebieski to −36 dB i mniej. Dla każdej częstotliwości mapa liczy się od nowa.";
-  const rows = src.map((s, i) => whyRow(`<span class="badge" style="background:var(--accent)">${i + 1}</span>${esc(m.name)}`,
-    `${fmt(s.t)} ms${s.pol < 0 ? " · polaryzacja −" : ""}`, s.t > 0 || s.pol < 0 ? "a" : "n",
-    `Pozycja: ${fmt(s.x)} m w bok, ${fmt(s.y)} m w głąb (0 = front suba najbliższego publiczności).`));
-  const d = f.d, sum = whyRow("Odstęp", `${fmt(d)} m`, "n", `To ${fmt(d / lam, 2)} długości fali przy ${fq} Hz (λ = ${fmt(lam)} m, c = ${fmt(c, 1)} m/s). ${quarter ? "Dla end-fire i gradientu optimum to ¼ λ." : "Dla układów poziomych typowo ½ λ."}`, "final");
-  $("fsOut").innerHTML = sum + rows.join("");
+  /* tabela */
+  const ref = REF[S.ref][1];
+  const rowsG = q.act.map(k => whyRow(who(k, names[k]), q.dl[k] > 0 ? `+${fmt(q.dl[k])} ms` : "0 ms", q.dl[k] > 0 ? k.toLowerCase() : "n",
+    `Droga do ${ref}: ${fmt(q.D[k])} m, czyli ${fmt(q.D[k] / c * 1000)} ms. Czas przejścia ${q.custom ? "pominięty" : fmt(q.P[k].L, 1) + " ms"}. Dotarcie po ${fmt(q.T[k])} ms.` + (k === "A" ? " To opóźnienie grupy subów, do niego dochodzą opóźnienia wewnętrzne układu." : "")));
+  const rowsS = src.map((s, i) => { const tot = q.dl.A + s.t; return whyRow(`<span class="badge a">${i + 1}</span>${esc(m.name)}`,
+    `${fmt(tot)} ms${s.pol < 0 ? " · pol −" : ""}`, tot > 0 || s.pol < 0 ? "a" : "n",
+    `Do wpisania w procesorze: grupa ${fmt(q.dl.A)} ms + układ ${fmt(s.t)} ms${s.pol < 0 ? ", polaryzacja odwrócona" : ""}. Pozycja: ${fmt(s.x)} m w bok, ${fmt(s.y)} m w głąb (0 = front suba najbliższego publiczności).`); });
+  const d = f.d, sum = whyRow("Odstęp subów", `${fmt(d)} m`, "n", `To ${fmt(d / lam, 2)} długości fali przy ${fq} Hz (λ = ${fmt(lam)} m, c = ${fmt(c, 1)} m/s). ${quarter ? "Dla end-fire i gradientu optimum to ¼ λ." : "Dla układów poziomych typowo ½ λ."}`, "final");
+  $("fsOut").innerHTML = rowsG.join("") + sum + rowsS.join("");
   if (!fsRaf && f.view === "wave") fsRaf = requestAnimationFrame(fsLoop);
 }
 document.querySelectorAll('#segMode input').forEach(i => i.addEventListener("change", () => { S.mode = i.value; update(); }));
@@ -714,12 +759,12 @@ $("fsAuto").addEventListener("click", () => {
   const lam = speedOfSound(S.T) / FSF[S.fs.fi], q = S.fs.type === "end" || S.fs.type === "grad";
   S.fs.d = Math.round(lam / (q ? 4 : 2) * 100) / 100; update();
 });
-$("selFS").addEventListener("change", e => { S.fs.model = e.target.value; update(); });
-$("selFS").innerHTML = DB.subs.map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join(""); $("selFS").value = S.fs.model;
 
 /* Start */
 fillSelect($("selA"), S.A);
 fillSelect($("selB"), S.B);
-fillSelect($("selC"), S.C);
+fillSelect($("fselA"), S.fs.A, true);
+fillSelect($("fselB"), S.fs.B);
+fillSelect($("fselC"), S.fs.C);
 syncModels();
 update();

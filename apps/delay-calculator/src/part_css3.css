@@ -28,3 +28,8 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
 #tileC.on { background: var(--c); }
 .tab { font-size: 13px; }
 .pl-chipt.onC, .pl-bl.onC { fill: #06121A; }
+
+:root:root:root { --b: #F2579F; --b-text: #FF8BBA; --c: #3FD07E; --c-text: #66E39B; }
+#tileB.on, #ftileB.on { background: var(--b); }
+#ftileA.on { background: var(--a); }
+#ftileC.on { background: var(--c); }

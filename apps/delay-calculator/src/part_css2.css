@@ -94,3 +94,17 @@ input[type=range] { accent-color: var(--accent); height: 32px; }
 .tiles.three .tile .val small { display: inline; font-size: 12px; margin-left: 2px; }
 .tiles.three .tile .hint { font-size: 11px; line-height: 14px; }
 #segFSType span { padding-inline: 4px; font-size: 14px; }
+
+/* v7: kolory głośników i kwadraty wyboru */
+.spk-a { --sc: var(--a); --st: var(--accent-text); }
+.spk-b { --sc: var(--b); --st: var(--b-text); }
+.spk-c { --sc: var(--c); --st: var(--c-text); }
+.spkblk .pick select { color: var(--st); font-weight: 600; }
+.spkblk .row.block { padding-top: 2px; }
+:root:root .seg.sq { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; background: none; padding: 0; }
+:root:root .seg.sq label { flex: none; }
+:root:root .seg.sq span { display: grid; place-items: center; min-height: 52px; padding: 6px 8px; border-radius: 12px; text-align: center; white-space: normal; line-height: 17px;
+  background: var(--fill); border: 1.5px solid transparent; color: var(--label-2); font-weight: 600; }
+:root:root .seg.sq input:checked + span { background: var(--sc); color: #06121A; border-color: var(--sc); box-shadow: none; }
+:root:root .seg.sq input:focus-visible + span { outline: 2px solid var(--sc); outline-offset: 2px; }
+.spkuse { padding-bottom: 6px; }
