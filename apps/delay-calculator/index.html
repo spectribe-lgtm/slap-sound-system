@@ -307,6 +307,14 @@ input.txt { width: 100%; box-sizing: border-box; border: 0; border-radius: 8px; 
 .sm-card[hidden] { display: none; }
 .sm-card .row .k { max-width: 62%; }
 
+/* v6 */
+#fsCv { display: block; width: 100%; height: auto; border-radius: 12px; background: #0B0D10; }
+input[type=range] { accent-color: var(--accent); height: 32px; }
+.fsticks { display: flex; justify-content: space-between; font: 500 12px/16px var(--font); color: var(--label-2); padding: 0 4px; font-variant-numeric: tabular-nums; }
+.tiles.three .tile .val small { display: inline; font-size: 12px; margin-left: 2px; }
+.tiles.three .tile .hint { font-size: 11px; line-height: 14px; }
+#segFSType span { padding-inline: 4px; font-size: 14px; }
+
 /* ===== Wersja 4: ciemny motyw narzędziowy, zakładki u góry (styl aplikacji typu live-audio multi-tool) ===== */
 :root:root:root {
   --bg: #111418; --card: #1A1D24; --label: #E8EAED; --label-2: rgba(232,234,237,.62); --label-3: rgba(232,234,237,.32);
@@ -345,6 +353,10 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
 
 <main id="tab-calc" role="tabpanel" aria-labelledby="t-calc">
   <h1>Delay</h1>
+  <div class="group"><div class="row block"><div class="seg" id="segMode" role="radiogroup" aria-label="Tryb">
+    <label><input type="radio" name="mode" value="fs"><span>Front System</span></label>
+    <label><input type="radio" name="mode" value="dj"><span>DJ Monitor</span></label></div></div></div>
+  <div id="dj">
 
   <section class="result" aria-live="polite" aria-label="Wynik">
     <div class="cap">Ustaw w procesorze</div>
@@ -355,7 +367,6 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
     </div>
     <p class="dsp" id="dsp"></p>
     <p class="warn" id="warn" hidden></p>
-    <button class="btn" id="copy" type="button">Kopiuj wartość</button>
   </section>
 
   <h2 class="group-title">Głośniki</h2>
@@ -368,7 +379,7 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
       <label class="pick"><select id="selB" aria-label="Model głośnika B"></select>
         <svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></label></div>
     <div class="row block" id="presetRowB"><span class="k" style="margin-bottom:8px">Preset głośnika B</span><div class="seg" id="segB" role="radiogroup" aria-label="Preset głośnika B"></div></div>
-    <div class="row block"><span class="k" style="margin-bottom:8px"><span class="badge c">C</span>Trzeci głośnik (front fill, mid/high…)</span>
+    <div class="row block"><span class="k" style="margin-bottom:8px"><span class="badge c">C</span>Głośnik C</span>
       <div class="seg" id="segUseC" role="radiogroup" aria-label="Głośnik C"><label><input type="radio" name="usec" value="0"><span>Wyłączony</span></label><label><input type="radio" name="usec" value="1"><span>Włączony</span></label></div></div>
     <div id="grpC" hidden>
       <div class="row"><span class="k"><span class="badge c">C</span>Głośnik</span>
@@ -437,6 +448,49 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
   <h2 class="group-title">Jak powstał wynik</h2>
   <div class="group" id="why"></div>
   <p class="group-foot" id="phaseNote"></p>
+</div>
+
+  <div id="fs" hidden>
+    <h2 class="group-title">Układ subwooferów</h2>
+    <div class="group">
+      <div class="row"><span class="k">Model suba</span>
+        <label class="pick"><select id="selFS" aria-label="Model suba"></select><svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></label></div>
+      <div class="row block"><span class="k" style="margin-bottom:8px">Typ układu</span><div class="seg" id="segFSType" role="radiogroup" aria-label="Typ układu subwooferów">
+        <label><input type="radio" name="fstype" value="line"><span>Linia</span></label>
+        <label><input type="radio" name="fstype" value="arc"><span>Łuk</span></label>
+        <label><input type="radio" name="fstype" value="end"><span>End-fire</span></label>
+        <label><input type="radio" name="fstype" value="grad"><span>Gradient</span></label></div></div>
+    <div class="row" id="rowFSN"><label class="k" for="fsN">Liczba subów</label>
+      <div class="num"><input id="fsN" inputmode="decimal" autocomplete="off"><span class="u">szt.</span>
+        <div class="stepper"><button type="button" data-step="fsN" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsN" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    <div class="row" id="rowFSD"><label class="k" for="fsD">Odstęp subów</label>
+      <div class="num"><input id="fsD" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+        <div class="stepper"><button type="button" data-step="fsD" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsD" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    <div class="row" id="rowFSA" hidden><label class="k" for="fsA">Kąt łuku</label>
+      <div class="num"><input id="fsA" inputmode="decimal" autocomplete="off"><span class="u">°</span>
+        <div class="stepper"><button type="button" data-step="fsA" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsA" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+      <div class="row block"><button class="btn" id="fsAuto" type="button" style="margin-top:0">Odstęp wg częstotliwości</button></div>
+    </div>
+    <p class="group-foot" id="fsNote"></p>
+
+    <h2 class="group-title">Częstotliwość</h2>
+    <div class="group">
+      <div class="row"><span class="k">Mapa dla</span><span class="v mono" id="fsFval">80 Hz</span></div>
+      <div class="row block"><input type="range" id="fsF" min="0" max="5" step="1" aria-label="Częstotliwość mapy" style="width:100%">
+        <div class="fsticks"><span>30</span><span>40</span><span>50</span><span>60</span><span>80</span><span>100</span></div></div>
+    </div>
+
+    <h2 class="group-title">Pole dźwięku (widok z góry)</h2>
+    <div class="stage"><canvas id="fsCv" width="640" height="640" role="img" aria-label="Mapa pola dźwięku subwooferów widziana z góry"></canvas></div>
+    <div class="group" style="margin-top:12px"><div class="row block"><div class="seg" id="segFSView" role="radiogroup" aria-label="Widok mapy">
+      <label><input type="radio" name="fsview" value="spl"><span>Poziom (dB)</span></label>
+      <label><input type="radio" name="fsview" value="wave"><span>Fala (animacja)</span></label></div></div></div>
+    <p class="group-foot" id="fsMapNote"></p>
+
+    <h2 class="group-title">Ustawienia procesora</h2>
+    <div class="group" id="fsOut"></div>
+    <p class="group-foot">Model: źródła punktowe, bez ścian i podłogi, suby traktowane jako dookólne (jak w arkuszu S.A.D. Merlijna van Veena). To punkt startowy, zawsze zmierz i sprawdź.</p>
+  </div>
 </main>
 
 <main id="tab-plan" role="tabpanel" aria-labelledby="t-plan" hidden>
@@ -486,6 +540,8 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
       <li>Dwa suby albo dwa topy: czasy z biblioteki też się odejmują.</li>
       <li>Głośnik spoza bazy: wybierz „Inny głośnik”, wtedy liczy się tylko odległość.</li>
     </ul>
+    <h2>Front System: układ subwooferów</h2>
+    <p>Linia: suby obok siebie, bez opóźnień. Łuk: suby w linii z opóźnieniami, jakby stały na łuku o wybranym kącie. End-fire: suby jeden za drugim, każdy bliższy publiczności opóźniony o odstęp / c, dzięki czemu z przodu sumują się, a z tyłu znoszą. Gradient: dwa suby, tylny opóźniony i z odwróconą polaryzacją, daje kardioidę. Zasady odstępów z arkusza S.A.D.: ½ długości fali dla układów poziomych, ¼ dla end-fire i gradientu.</p>
     <h2>Trzeci głośnik (C)</h2>
     <p>Włącz go w sekcji Głośniki (np. główny mid/high, sub i front fill). Każdy głośnik opóźnia się do najpóźniejszego: opóźnienie = czas dotarcia najpóźniejszego minus własny, gdzie czas dotarcia to droga / prędkość dźwięku + czas przejścia z tabeli Seeburga.</p>
     <h2>Dalmierz</h2>
@@ -650,10 +706,11 @@ function compute(s) {
 /* ============ STAN ============ */
 const KEY = "seeburg-delay-v4";
 /* Przykład: wieża przy DJ-u. 2 × K Sub 1801 jedna na drugiej, na nich X8, front w jednej płaszczyźnie, ucho 1,6 m nad podłogą, 1,3 m poziomo. */
-const defaults = { A:"ksub1801", pA:"100", B:"x8", pB:"hp", nA:2, arr:"stack", place:"tower", x:1.3, xB:2.5, hr:1.6, bA:0, bB:0, useC:false, C:"x6", pC:"hp", xC:4, bC:0, sm:{ A:{}, B:{}, C:{} }, T:20, ref:"dj" };
+const defaults = { A:"ksub1801", pA:"100", B:"x8", pB:"hp", nA:2, arr:"stack", place:"tower", x:1.3, xB:2.5, hr:1.6, bA:0, bB:0, mode:"fs", fs:{ model:"ksub1801", type:"line", n:4, d:1, arc:90, fi:4, view:"spl" }, useC:false, C:"x6", pC:"hp", xC:4, bC:0, sm:{ A:{}, B:{}, C:{} }, T:20, ref:"dj" };
 let S = Object.assign({}, defaults);
 try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
 ["A", "B", "C"].forEach(k => { S.sm[k] = S.sm[k] || {}; });
+S.fs = Object.assign({ model:"ksub1801", type:"line", n:4, d:1, arc:90, fi:4, view:"spl" }, S.fs);
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 const $ = id => document.getElementById(id);
 const fmt = (n, d = 2) => n.toFixed(d).replace(".", ",").replace(/^-0([,.]0+)?$/, "0$1");
@@ -692,7 +749,10 @@ const num = (key, step, lo, hi, d = 2) => ({ get: () => S[key], set: v => { S[ke
 const F = {
   nA: { get: () => S.nA, set: v => { S.nA = Math.min(4, Math.max(1, Math.round(v))); }, step: 1, lo: 1, hi: 4, d: 0 },
   fX: num("x", .05, .05, 200), fXB: num("xB", .05, .05, 200), fR: num("hr", .05, 0, 4),
-  bA: num("bA", .05, 0, 10), bB: num("bB", .05, 0, 10), fXC: num("xC", .05, .05, 200), bC: num("bC", .05, 0, 10),
+  bA: num("bA", .05, 0, 10), bB: num("bB", .05, 0, 10), fsN: { get: () => S.fs.n, set: v => { S.fs.n = Math.min(12, Math.max(1, Math.round(v))); }, step: 1, lo: 1, hi: 12, d: 0 },
+  fsD: { get: () => S.fs.d, set: v => { S.fs.d = v; }, step: .05, lo: .1, hi: 10, d: 2 },
+  fsA: { get: () => S.fs.arc, set: v => { S.fs.arc = v; }, step: 5, lo: 10, hi: 170, d: 0 },
+  fXC: num("xC", .05, .05, 200), bC: num("bC", .05, 0, 10),
   temp: { get: () => S.T, set: v => { S.T = v; }, step: 1, lo: -30, hi: 60, d: 1 }
 };
 const parse = v => parseFloat(String(v).replace(",", ".").replace(/[^0-9.\-]/g, ""));
@@ -953,18 +1013,9 @@ function update(syncIn = true) {
   render(r);
   drawPlan(r);
   renderSmaart();
+  fsRender();
   if (syncIn) syncInputs();
 }
-
-$("copy").addEventListener("click", async () => {
-  const r = compute(S), ms = Math.max(r.delayA, r.delayB);
-  const m = r.delayB > 0 ? r.mB : r.mA;
-  const text = r.useC ? r.act.map(k => `${k} ${r["m" + k].name}: ${fmt(r["delay" + k])} ms`).join(" · ") : `${m.name}: ${fmt(ms)} ms`;
-  const b = $("copy");
-  try { await navigator.clipboard.writeText(text); b.textContent = "Skopiowano"; }
-  catch (e) { b.textContent = text; }
-  setTimeout(() => { b.textContent = "Kopiuj wartość"; }, 1600);
-});
 
 /* Karty */
 function showTab(name) {
@@ -973,6 +1024,7 @@ function showTab(name) {
     $("t-" + t).setAttribute("aria-selected", String(t === name));
   });
   window.scrollTo(0, 0);
+  if (name === "calc") fsRender();
 }
 document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => showTab(t.dataset.tab)));
 
@@ -1100,6 +1152,145 @@ stageEl.addEventListener("pointermove", e => {
   update();
 });
 ["pointerup", "pointercancel", "lostpointercapture"].forEach(t => stageEl.addEventListener(t, () => { drag = null; }));
+
+
+/* ============ FRONT SYSTEM: układ subwooferów i pole dźwięku ============ */
+const FSF = [30, 40, 50, 60, 80, 100];
+const FSTYPE = {
+  line: ["Linia", "Suby obok siebie, wszystkie z tym samym sygnałem i bez opóźnień."],
+  arc: ["Łuk", "Suby w prostej linii z opóźnieniami, jakby stały na łuku o podanym kącie. Rozszerza wiązkę. Opóźnione są suby z brzegów."],
+  end: ["End-fire", "Suby jeden za drugim. Każdy bliższy publiczności jest opóźniony o odstęp / c, więc z przodu sygnały się sumują, a z tyłu znoszą. Zalecany odstęp ¼ fali."],
+  grad: ["Gradient (kardioida)", "Dwa suby jeden za drugim: tylny opóźniony o odstęp / c i z odwróconą polaryzacją. Wycisza dźwięk za układem. Zalecany odstęp ¼ fali."]
+};
+const FSX = [-20, 20], FSY = [-10, 30], GN = 160;               // zakres mapy w metrach (x, y) i rozdzielczość siatki
+let fsField = null, fsRaf = null;
+function fsSources() {
+  const f = S.fs, c = speedOfSound(S.T), d = f.d;
+  let n = Math.max(1, Math.min(12, Math.round(f.n))); const out = [];
+  if (f.type === "grad") n = 2;
+  if (f.type === "line" || f.type === "arc") {
+    const half = (n - 1) / 2, th = Math.min(170, Math.max(10, f.arc)) * Math.PI / 180;
+    const R = f.type === "arc" && n > 1 ? (n - 1) * d / (2 * Math.sin(th / 2)) : 0;
+    for (let i = 0; i < n; i++) {
+      const x = (i - half) * d; let t = 0;
+      if (R) t = R * (1 - Math.cos(Math.asin(Math.min(1, Math.abs(x) / R)))) / c * 1000;
+      out.push({ x, y: 0, t, pol: 1 });
+    }
+  } else if (f.type === "end") {
+    for (let i = 0; i < n; i++) out.push({ x: 0, y: (i - (n - 1)) * d, t: i * d / c * 1000, pol: 1 });
+  } else { out.push({ x: 0, y: 0, t: 0, pol: 1 }, { x: 0, y: -d, t: d / c * 1000, pol: -1 }); }
+  return { src: out, c, n };
+}
+function fsCompute() {
+  const { src, c } = fsSources(), f = FSF[S.fs.fi], k = 2 * Math.PI * f / c, w = 2 * Math.PI * f;
+  const re = new Float32Array(GN * GN), im = new Float32Array(GN * GN);
+  for (let j = 0; j < GN; j++) {
+    const Y = FSY[1] - (FSY[1] - FSY[0]) * (j + .5) / GN;
+    for (let i = 0; i < GN; i++) {
+      const X = FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / GN;
+      let a = 0, b = 0;
+      for (const s of src) {
+        const r = Math.max(0.3, Math.hypot(X - s.x, Y - s.y)), ph = -k * r - w * s.t / 1000, g = s.pol / r;
+        a += g * Math.cos(ph); b += g * Math.sin(ph);
+      }
+      re[j * GN + i] = a; im[j * GN + i] = b;
+    }
+  }
+  let mx = 1e-9;
+  for (let j = 0; j < GN; j++) for (let i = 0; i < GN; i++) {
+    const X = FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / GN, Y = FSY[1] - (FSY[1] - FSY[0]) * (j + .5) / GN;
+    if (src.every(s => Math.hypot(X - s.x, Y - s.y) > 3)) mx = Math.max(mx, Math.hypot(re[j * GN + i], im[j * GN + i]));
+  }
+  fsField = { re, im, mx, src, f, c };
+}
+const CMAP = [[0, [11, 26, 58]], [.25, [29, 79, 156]], [.5, [41, 182, 168]], [.75, [232, 212, 77]], [1, [232, 68, 47]]];
+function cmap(t) {
+  t = Math.min(1, Math.max(0, t));
+  for (let i = 1; i < CMAP.length; i++) if (t <= CMAP[i][0]) {
+    const [t0, c0] = CMAP[i - 1], [t1, c1] = CMAP[i], u = (t - t0) / (t1 - t0);
+    return [c0[0] + (c1[0] - c0[0]) * u, c0[1] + (c1[1] - c0[1]) * u, c0[2] + (c1[2] - c0[2]) * u];
+  }
+  return CMAP[CMAP.length - 1][1];
+}
+const fsOff = document.createElement("canvas"); fsOff.width = fsOff.height = GN;
+function fsDraw(tms) {
+  const cv = $("fsCv"); if (!cv || !fsField) return;
+  const ctx = cv.getContext("2d"), o = fsOff.getContext("2d"), img = o.createImageData(GN, GN), F = fsField, wave = S.fs.view === "wave";
+  const ph = wave ? (tms / 1000) * 2 * Math.PI * 0.6 : 0, cp = Math.cos(ph), sp = Math.sin(ph);
+  for (let j = 0; j < GN; j++) {
+    const Y = FSY[1] - (FSY[1] - FSY[0]) * (j + .5) / GN;
+    for (let i = 0; i < GN; i++) {
+      const p = j * GN + i, a = F.re[p], b = F.im[p];
+      let col;
+      if (wave) {                                                     // chwilowe ciśnienie pomnożone przez odległość, żeby było widać falę daleko
+        const X = FSX[0] + (FSX[1] - FSX[0]) * (i + .5) / GN, rr = Math.max(1, Math.hypot(X, Y + 2));
+        const v = (a * cp - b * sp) * rr / (F.mx * 12), m = Math.min(1, Math.abs(v) ** 0.7);
+        col = v >= 0 ? [20 + 215 * m, 22 + 50 * m, 28 + 20 * m] : [20 + 10 * m, 22 + 110 * m, 28 + 215 * m];
+      } else {
+        const lv = 20 * Math.log10(Math.hypot(a, b) / F.mx + 1e-9);            // 0 dB = maksimum dalej niż 3 m od subów
+        const q = Math.round(lv / 3) * 3;                                      // pasma co 3 dB jak w S.A.D.
+        col = cmap((q + 36) / 36);
+      }
+      const q4 = p * 4; img.data[q4] = col[0]; img.data[q4 + 1] = col[1]; img.data[q4 + 2] = col[2]; img.data[q4 + 3] = 255;
+    }
+  }
+  o.putImageData(img, 0, 0);
+  const W = cv.width, H = cv.height;
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(fsOff, 0, 0, W, H);
+  const px = x => (x - FSX[0]) / (FSX[1] - FSX[0]) * W, py = y => (FSY[1] - y) / (FSY[1] - FSY[0]) * H;
+  ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = 1; ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.font = "20px -apple-system, sans-serif";
+  for (let x = -20; x <= 20; x += 10) { ctx.beginPath(); ctx.moveTo(px(x), 0); ctx.lineTo(px(x), H); ctx.stroke(); }
+  for (let y = -10; y <= 30; y += 10) { ctx.beginPath(); ctx.moveTo(0, py(y)); ctx.lineTo(W, py(y)); ctx.stroke(); }
+  for (let y = 10; y <= 30; y += 10) ctx.fillText(y + " m", 8, py(y) - 6);
+  const m = modelOf(S.fs.model), dm = dimsOf(m), ppm = W / (FSX[1] - FSX[0]);
+  F.src.forEach((s, i) => {
+    const w = Math.max(10, dm[1] * ppm), h = Math.max(10, dm[2] * ppm), X = px(s.x), Y = py(s.y);
+    ctx.fillStyle = s.pol < 0 ? "#7d2f2f" : "#3a3d44"; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+    ctx.fillRect(X - w / 2, Y - h / 2, w, h); ctx.strokeRect(X - w / 2, Y - h / 2, w, h);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 18px -apple-system, sans-serif"; ctx.textAlign = "center"; ctx.fillText(String(i + 1), X, Y + 6); ctx.textAlign = "start";
+  });
+  ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.font = "20px -apple-system, sans-serif"; ctx.fillText("publiczność ↑", W - 150, 28);
+}
+function fsLoop(t) {
+  fsRaf = null;
+  if (S.mode !== "fs" || S.fs.view !== "wave" || $("tab-calc").hidden || document.hidden) return;
+  fsDraw(t); fsRaf = requestAnimationFrame(fsLoop);
+}
+function fsRender() {
+  document.querySelectorAll('#segMode input').forEach(i => { i.checked = i.value === S.mode; });
+  $("dj").hidden = S.mode !== "fs" ? false : true; $("fs").hidden = S.mode !== "fs";
+  if (S.mode !== "fs") return;
+  const f = S.fs, { src, c, n } = fsSources(), fq = FSF[f.fi], lam = c / fq;
+  document.querySelectorAll('#segFSType input').forEach(i => { i.checked = i.value === f.type; });
+  document.querySelectorAll('#segFSView input').forEach(i => { i.checked = i.value === f.view; });
+  $("fsF").value = f.fi; $("fsFval").textContent = fq + " Hz (λ = " + fmt(lam) + " m)";
+  $("rowFSA").hidden = f.type !== "arc"; $("rowFSN").hidden = f.type === "grad";
+  const quarter = f.type === "end" || f.type === "grad";
+  $("fsAuto").textContent = `Ustaw odstęp ${quarter ? "¼" : "½"} fali (${fmt(lam / (quarter ? 4 : 2))} m)`;
+  $("fsNote").textContent = FSTYPE[f.type][1];
+  const m = modelOf(f.model);
+  fsCompute(); fsDraw(performance.now());
+  $("fsMapNote").textContent = f.view === "wave"
+    ? "Animacja pokazuje chwilowe ciśnienie na wybranej częstotliwości (czerwony: nadciśnienie, niebieski: podciśnienie), spowolniona. Widać, dokąd fala się sumuje, a gdzie się znosi."
+    : "Pasma co 3 dB. 0 dB to najgłośniejsze miejsce dalej niż 3 m od subów, ciemny niebieski to −36 dB i mniej. Dla każdej częstotliwości mapa liczy się od nowa.";
+  const rows = src.map((s, i) => whyRow(`<span class="badge" style="background:var(--accent)">${i + 1}</span>${esc(m.name)}`,
+    `${fmt(s.t)} ms${s.pol < 0 ? " · polaryzacja −" : ""}`, s.t > 0 || s.pol < 0 ? "a" : "n",
+    `Pozycja: ${fmt(s.x)} m w bok, ${fmt(s.y)} m w głąb (0 = front suba najbliższego publiczności).`));
+  const d = f.d, sum = whyRow("Odstęp", `${fmt(d)} m`, "n", `To ${fmt(d / lam, 2)} długości fali przy ${fq} Hz (λ = ${fmt(lam)} m, c = ${fmt(c, 1)} m/s). ${quarter ? "Dla end-fire i gradientu optimum to ¼ λ." : "Dla układów poziomych typowo ½ λ."}`, "final");
+  $("fsOut").innerHTML = sum + rows.join("");
+  if (!fsRaf && f.view === "wave") fsRaf = requestAnimationFrame(fsLoop);
+}
+document.querySelectorAll('#segMode input').forEach(i => i.addEventListener("change", () => { S.mode = i.value; update(); }));
+document.querySelectorAll('#segFSType input').forEach(i => i.addEventListener("change", () => { S.fs.type = i.value; if (i.value === "grad") S.fs.n = 2; update(); }));
+document.querySelectorAll('#segFSView input').forEach(i => i.addEventListener("change", () => { S.fs.view = i.value; update(); }));
+$("fsF").addEventListener("input", e => { S.fs.fi = Number(e.target.value); update(); });
+$("fsAuto").addEventListener("click", () => {
+  const lam = speedOfSound(S.T) / FSF[S.fs.fi], q = S.fs.type === "end" || S.fs.type === "grad";
+  S.fs.d = Math.round(lam / (q ? 4 : 2) * 100) / 100; update();
+});
+$("selFS").addEventListener("change", e => { S.fs.model = e.target.value; update(); });
+$("selFS").innerHTML = DB.subs.map(m => `<option value="${m.id}">${esc(m.name)}</option>`).join(""); $("selFS").value = S.fs.model;
 
 /* Start */
 fillSelect($("selA"), S.A);

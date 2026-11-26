@@ -3,6 +3,10 @@
 
 <main id="tab-calc" role="tabpanel" aria-labelledby="t-calc">
   <h1>Delay</h1>
+  <div class="group"><div class="row block"><div class="seg" id="segMode" role="radiogroup" aria-label="Tryb">
+    <label><input type="radio" name="mode" value="fs"><span>Front System</span></label>
+    <label><input type="radio" name="mode" value="dj"><span>DJ Monitor</span></label></div></div></div>
+  <div id="dj">
 
   <section class="result" aria-live="polite" aria-label="Wynik">
     <div class="cap">Ustaw w procesorze</div>
@@ -13,7 +17,6 @@
     </div>
     <p class="dsp" id="dsp"></p>
     <p class="warn" id="warn" hidden></p>
-    <button class="btn" id="copy" type="button">Kopiuj wartość</button>
   </section>
 
   <h2 class="group-title">Głośniki</h2>
@@ -26,7 +29,7 @@
       <label class="pick"><select id="selB" aria-label="Model głośnika B"></select>
         <svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></label></div>
     <div class="row block" id="presetRowB"><span class="k" style="margin-bottom:8px">Preset głośnika B</span><div class="seg" id="segB" role="radiogroup" aria-label="Preset głośnika B"></div></div>
-    <div class="row block"><span class="k" style="margin-bottom:8px"><span class="badge c">C</span>Trzeci głośnik (front fill, mid/high…)</span>
+    <div class="row block"><span class="k" style="margin-bottom:8px"><span class="badge c">C</span>Głośnik C</span>
       <div class="seg" id="segUseC" role="radiogroup" aria-label="Głośnik C"><label><input type="radio" name="usec" value="0"><span>Wyłączony</span></label><label><input type="radio" name="usec" value="1"><span>Włączony</span></label></div></div>
     <div id="grpC" hidden>
       <div class="row"><span class="k"><span class="badge c">C</span>Głośnik</span>
@@ -95,6 +98,49 @@
   <h2 class="group-title">Jak powstał wynik</h2>
   <div class="group" id="why"></div>
   <p class="group-foot" id="phaseNote"></p>
+</div>
+
+  <div id="fs" hidden>
+    <h2 class="group-title">Układ subwooferów</h2>
+    <div class="group">
+      <div class="row"><span class="k">Model suba</span>
+        <label class="pick"><select id="selFS" aria-label="Model suba"></select><svg class="chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></label></div>
+      <div class="row block"><span class="k" style="margin-bottom:8px">Typ układu</span><div class="seg" id="segFSType" role="radiogroup" aria-label="Typ układu subwooferów">
+        <label><input type="radio" name="fstype" value="line"><span>Linia</span></label>
+        <label><input type="radio" name="fstype" value="arc"><span>Łuk</span></label>
+        <label><input type="radio" name="fstype" value="end"><span>End-fire</span></label>
+        <label><input type="radio" name="fstype" value="grad"><span>Gradient</span></label></div></div>
+    <div class="row" id="rowFSN"><label class="k" for="fsN">Liczba subów</label>
+      <div class="num"><input id="fsN" inputmode="decimal" autocomplete="off"><span class="u">szt.</span>
+        <div class="stepper"><button type="button" data-step="fsN" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsN" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    <div class="row" id="rowFSD"><label class="k" for="fsD">Odstęp subów</label>
+      <div class="num"><input id="fsD" inputmode="decimal" autocomplete="off"><span class="u">m</span>
+        <div class="stepper"><button type="button" data-step="fsD" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsD" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+    <div class="row" id="rowFSA" hidden><label class="k" for="fsA">Kąt łuku</label>
+      <div class="num"><input id="fsA" inputmode="decimal" autocomplete="off"><span class="u">°</span>
+        <div class="stepper"><button type="button" data-step="fsA" data-dir="-1" aria-label="Mniej">−</button><button type="button" data-step="fsA" data-dir="1" aria-label="Więcej">+</button></div></div></div>
+      <div class="row block"><button class="btn" id="fsAuto" type="button" style="margin-top:0">Odstęp wg częstotliwości</button></div>
+    </div>
+    <p class="group-foot" id="fsNote"></p>
+
+    <h2 class="group-title">Częstotliwość</h2>
+    <div class="group">
+      <div class="row"><span class="k">Mapa dla</span><span class="v mono" id="fsFval">80 Hz</span></div>
+      <div class="row block"><input type="range" id="fsF" min="0" max="5" step="1" aria-label="Częstotliwość mapy" style="width:100%">
+        <div class="fsticks"><span>30</span><span>40</span><span>50</span><span>60</span><span>80</span><span>100</span></div></div>
+    </div>
+
+    <h2 class="group-title">Pole dźwięku (widok z góry)</h2>
+    <div class="stage"><canvas id="fsCv" width="640" height="640" role="img" aria-label="Mapa pola dźwięku subwooferów widziana z góry"></canvas></div>
+    <div class="group" style="margin-top:12px"><div class="row block"><div class="seg" id="segFSView" role="radiogroup" aria-label="Widok mapy">
+      <label><input type="radio" name="fsview" value="spl"><span>Poziom (dB)</span></label>
+      <label><input type="radio" name="fsview" value="wave"><span>Fala (animacja)</span></label></div></div></div>
+    <p class="group-foot" id="fsMapNote"></p>
+
+    <h2 class="group-title">Ustawienia procesora</h2>
+    <div class="group" id="fsOut"></div>
+    <p class="group-foot">Model: źródła punktowe, bez ścian i podłogi, suby traktowane jako dookólne (jak w arkuszu S.A.D. Merlijna van Veena). To punkt startowy, zawsze zmierz i sprawdź.</p>
+  </div>
 </main>
 
 <main id="tab-plan" role="tabpanel" aria-labelledby="t-plan" hidden>
@@ -144,6 +190,8 @@
       <li>Dwa suby albo dwa topy: czasy z biblioteki też się odejmują.</li>
       <li>Głośnik spoza bazy: wybierz „Inny głośnik”, wtedy liczy się tylko odległość.</li>
     </ul>
+    <h2>Front System: układ subwooferów</h2>
+    <p>Linia: suby obok siebie, bez opóźnień. Łuk: suby w linii z opóźnieniami, jakby stały na łuku o wybranym kącie. End-fire: suby jeden za drugim, każdy bliższy publiczności opóźniony o odstęp / c, dzięki czemu z przodu sumują się, a z tyłu znoszą. Gradient: dwa suby, tylny opóźniony i z odwróconą polaryzacją, daje kardioidę. Zasady odstępów z arkusza S.A.D.: ½ długości fali dla układów poziomych, ¼ dla end-fire i gradientu.</p>
     <h2>Trzeci głośnik (C)</h2>
     <p>Włącz go w sekcji Głośniki (np. główny mid/high, sub i front fill). Każdy głośnik opóźnia się do najpóźniejszego: opóźnienie = czas dotarcia najpóźniejszego minus własny, gdzie czas dotarcia to droga / prędkość dźwięku + czas przejścia z tabeli Seeburga.</p>
     <h2>Dalmierz</h2>
