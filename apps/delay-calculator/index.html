@@ -590,7 +590,12 @@ h1 { font-size: 24px; line-height: 30px; padding: 14px 0 6px; letter-spacing: -.
     <div class="row block"><div class="seg" id="segW" role="radiogroup" aria-label="Krzywa ważenia">
       <label><input type="radio" name="splw" value="A"><span>A</span></label><label><input type="radio" name="splw" value="C"><span>C</span></label><label><input type="radio" name="splw" value="Z"><span>Z (płasko)</span></label></div></div>
     <div class="row block"><div class="seg" id="segT" role="radiogroup" aria-label="Stała czasowa">
-      <label><input type="radio" name="splt" value="F"><span>Fast 125 ms</span></label><label><input type="radio" name="splt" value="S"><span>Slow 1 s</span></label></div></div>
+      <label><input type="radio" name="splt" value="F"><span>Fast 125 ms</span></label><label><input type="radio" name="splt" value="S"><span>Slow 1 s</span></label><label><input type="radio" name="splt" value="L"><span>Śr. 5 s</span></label></div></div>
+    <div class="row block"><div class="seg" id="segR" role="radiogroup" aria-label="Odświeżanie wyniku">
+      <label><input type="radio" name="splr" value="0.1"><span>0,1 s</span></label><label><input type="radio" name="splr" value="0.25"><span>0,25 s</span></label><label><input type="radio" name="splr" value="0.5"><span>0,5 s</span></label><label><input type="radio" name="splr" value="1"><span>1 s</span></label><label><input type="radio" name="splr" value="2"><span>2 s</span></label></div>
+      <p class="group-foot" style="margin:6px 0 0">Odświeżanie: co ile sekund zmienia się liczba i wykres. Wynik jest wtedy średnią energetyczną z całego okresu.</p></div>
+    <div class="row block"><label class="k" for="splGain" style="display:flex;justify-content:space-between"><span>Czułość mikrofonu (gain)</span><span class="v mono" id="splGainV">0 dB</span></label>
+      <input type="range" id="splGain" min="-20" max="40" step="1" style="width:100%;margin-top:8px"></div>
   </div>
   <div class="group" style="margin-top:12px">
     <div class="row"><span class="k">Leq (od resetu)</span><span class="v mono" id="splLeq">--</span></div>
@@ -1204,12 +1209,12 @@ document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () =>
 
 /* ============ SPL: pomiar poziomu z mikrofonu telefonu, ważenie A/C/Z (filtry IIR), Fast/Slow, Leq/Lmax/Lmin/Lpeak ============ */
 const SPLK = "seeburg-spl-v1";
-let SP = { w: "A", t: "F", cal: 100, dev: "" };
+let SP = { w: "A", t: "F", cal: 100, dev: "", gain: 0, r: 0.5 };
 try { Object.assign(SP, JSON.parse(localStorage.getItem(SPLK) || "{}")); } catch (e) {}
 const splSave = () => { try { localStorage.setItem(SPLK, JSON.stringify(SP)); } catch (e) {} };
 let splCtx = null, splStream = null, splNode = null, splAn = null, splOn = false, splRaf = null;
-let spM = { msF: 0, msS: 0, eSum: 0, tSum: 0, max: -1e9, min: 1e9, pk: 0, hist: [], lastBlk: 0, fs: 48000, clip: 0 };
-function splReset() { Object.assign(spM, { eSum: 0, tSum: 0, max: -1e9, min: 1e9, pk: 0, hist: [], clip: 0 }); }
+let spM = { msL: 0, iE: 0, iT: 0, msF: 0, msS: 0, eSum: 0, tSum: 0, max: -1e9, min: 1e9, pk: 0, hist: [], lastBlk: 0, fs: 48000, clip: 0 };
+function splReset() { Object.assign(spM, { iE: 0, iT: 0, cur: undefined, eSum: 0, tSum: 0, max: -1e9, min: 1e9, pk: 0, hist: [], clip: 0 }); }
 /* filtr drugiego rzędu z transmitancji analogowej (b2 s² + b1 s + b0)/(s² + a1 s + a0), transformacja dwuliniowa */
 function bilin(fs, b2, b1, b0, a1, a0) {
   const K = 2 * fs, K2 = K * K, A0 = K2 + a1 * K + a0;
@@ -1232,20 +1237,25 @@ function splFilters(fs, w) {
 }
 let spFilt = [];
 function splProcess(buf) {
-  const fs = spM.fs, n = buf.length; let sumW = 0, pk = 0;
+  const fs = spM.fs, n = buf.length, gl = Math.pow(10, SP.gain / 20); let sumW = 0, pk = 0;
   for (let i = 0; i < n; i++) {
-    const x = buf[i], ax = Math.abs(x); if (ax > pk) pk = ax;
+    const x = buf[i] * gl, ax = Math.abs(x); if (ax > pk) pk = ax;
     let y = x;
     for (const c of spFilt) { const o = c.b0 * y + c.z1; c.z1 = c.b1 * y - c.a1 * o + c.z2; c.z2 = c.b2 * y - c.a2 * o; y = o; }
     sumW += y * y;
   }
   const ms = sumW / n, dt = n / fs;
   const aF = 1 - Math.exp(-dt / 0.125), aS = 1 - Math.exp(-dt / 1);
-  spM.msF += aF * (ms - spM.msF); spM.msS += aS * (ms - spM.msS);
+  const aL = 1 - Math.exp(-dt / 5);
+  spM.msF += aF * (ms - spM.msF); spM.msS += aS * (ms - spM.msS); spM.msL += aL * (ms - spM.msL);
   spM.eSum += ms * dt; spM.tSum += dt; spM.pk = Math.max(spM.pk, pk); if (pk > 0.99) spM.clip = 60;
-  const L = (spM.t === "F" ? spM.msF : spM.msS), db = 10 * Math.log10(Math.max(L, 1e-14)) + SP.cal;
-  if (spM.tSum > 1) { spM.max = Math.max(spM.max, db); spM.min = Math.min(spM.min, db); }
-  spM.cur = db; spM.hist.push(db); if (spM.hist.length > 600) spM.hist.shift();
+  const L = spM.t === "F" ? spM.msF : spM.t === "L" ? spM.msL : spM.msS;
+  spM.iE += L * dt; spM.iT += dt;                                          // średnia energetyczna z okresu odświeżania
+  if (spM.iT >= SP.r - 1e-6) {
+    const db = 10 * Math.log10(Math.max(spM.iE / spM.iT, 1e-14)) + SP.cal; spM.iE = 0; spM.iT = 0;
+    if (spM.tSum > 1) { spM.max = Math.max(spM.max, db); spM.min = Math.min(spM.min, db); }
+    spM.cur = db; spM.hist.push(db); if (spM.hist.length > 240) spM.hist.shift();
+  }
 }
 function splMsg(t, bad) { const e = $("splStat"); if (e) { e.textContent = t; e.style.color = bad ? "#ff6b5b" : ""; } }
 function splErr(e) {
@@ -1310,8 +1320,8 @@ function splDraw() {
   const lo = 30, hi = 130, y = v => H - 22 - (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo) * (H - 34);
   c.strokeStyle = "rgba(255,255,255,.12)"; c.fillStyle = "rgba(255,255,255,.55)"; c.font = "16px -apple-system, sans-serif"; c.lineWidth = 1;
   for (let v = 40; v <= 120; v += 20) { c.beginPath(); c.moveTo(0, y(v)); c.lineTo(W, y(v)); c.stroke(); c.fillText(v, 6, y(v) - 4); }
-  const h = spM.hist; if (h.length > 1) { c.strokeStyle = "#4C8DFF"; c.lineWidth = 2.5; c.beginPath(); h.forEach((v, i) => { const x = W - (h.length - 1 - i) / 600 * W; i ? c.lineTo(x, y(v)) : c.moveTo(x, y(v)); }); c.stroke(); }
-  c.fillStyle = "rgba(255,255,255,.45)"; c.fillText("ostatnie ok. 25 s", W - 150, H - 6);
+  const h = spM.hist; if (h.length > 1) { c.strokeStyle = "#4C8DFF"; c.lineWidth = 2.5; c.beginPath(); h.forEach((v, i) => { const x = W - (h.length - 1 - i) / 240 * W; i ? c.lineTo(x, y(v)) : c.moveTo(x, y(v)); }); c.stroke(); }
+  c.fillStyle = "rgba(255,255,255,.45)"; c.fillText("ostatnie " + fmt(240 * SP.r, 0) + " s", W - 150, H - 6);
   /* widmo */
   const sc = $("splSp"), s = sc.getContext("2d"), SW = sc.width, SH = sc.height; s.fillStyle = "#0B0D10"; s.fillRect(0, 0, SW, SH);
   s.strokeStyle = "rgba(255,255,255,.12)"; s.fillStyle = "rgba(255,255,255,.55)"; s.font = "15px -apple-system, sans-serif";
@@ -1327,9 +1337,12 @@ function splDraw() {
 function splLoop() { if (!splOn) { splDraw(); return; } splDraw(); splRaf = requestAnimationFrame(splLoop); }
 function splUI() {
   document.querySelectorAll('#segW input').forEach(i => { i.checked = i.value === SP.w; }); document.querySelectorAll('#segT input').forEach(i => { i.checked = i.value === SP.t; });
-  $("splCal").value = fmt(SP.cal, 1); splDraw();
+  $("splCal").value = fmt(SP.cal, 1); $("splGain").value = SP.gain; $("splGainV").textContent = (SP.gain > 0 ? "+" : "") + SP.gain + " dB";
+  document.querySelectorAll('#segR input').forEach(i => { i.checked = parseFloat(i.value) === SP.r; }); splDraw();
 }
 document.querySelectorAll('#segW input').forEach(i => i.addEventListener("change", () => { SP.w = i.value; splSave(); spFilt = splFilters(spM.fs, SP.w); spM.msF = spM.msS = 0; splReset(); splUI(); }));
+document.querySelectorAll('#segR input').forEach(i => i.addEventListener("change", () => { SP.r = parseFloat(i.value); splSave(); spM.iE = spM.iT = 0; splUI(); }));
+$("splGain").addEventListener("input", e => { SP.gain = parseInt(e.target.value, 10) || 0; splSave(); splReset(); splUI(); });
 document.querySelectorAll('#segT input').forEach(i => i.addEventListener("change", () => { SP.t = i.value; spM.t = SP.t; splSave(); splUI(); }));
 spM.t = SP.t;
 $("splGo").addEventListener("click", () => { splOn ? (splStop(), splDraw()) : splStart(); });
